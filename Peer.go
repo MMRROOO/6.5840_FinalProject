@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"time"
 )
 
 type Peer struct {
@@ -68,48 +67,4 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 		}
 	}
 	return true
-}
-
-func (P *Peer) GetChunksToRequest(peer int) []int {
-	args := GetChunksToRequestArgs{}
-	reply := GetChunksToRequestReply{}
-	ok := P.Host.Call("Host.SendChunksOwned", &args, &reply)
-
-	if ok {
-		ChunksToRequest := make([]int, 0)
-		for i := 0; i < len(ChunksToRequest); i++ {
-			if reply.ChunksOwned[i] & (!P.ChunksOwned[i]) {
-				ChunksToRequest = append(ChunksToRequest, i)
-			}
-		}
-
-		return ChunksToRequest
-	}
-	return make([]int, 0)
-}
-
-func (P *Peer) SendChunksOwned(args *GetChunksToRequestArgs, reply *GetChunksToRequestReply) {
-	reply.ChunksOwned = P.ChunksOwned
-
-}
-
-func (P *Peer) ticker(peer int) {
-	for killed() == false {
-		toRequest := P.GetChunksToRequest(peer)
-		for i := 0; i < len(toRequest); i++ {
-			P.GetChunk(peer, toRequest[i])
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-}
-
-func MakePeer(peers []*labrpc.ClientEnd, host *labrpc.ClientEnd) *Peer {
-	P := new(Peer)
-	P.Peers = peers
-	P.Host = host
-	for i := 0; i < len(peers); i++ {
-		go P.ticker(i)
-	}
-
-	return P
 }
