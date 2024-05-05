@@ -1,4 +1,4 @@
-package main
+package p2p
 
 import (
 	"crypto/rand"
@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-type Host struct {
+type Tracker struct {
 	Hashes []byte
 	peers  []labrpc.ClientEnd
 }
@@ -18,9 +18,9 @@ func nrand() int {
 	return int(x)
 }
 
-func (H *Host) SendFileMetaData(args MetaDataArgs, reply MetaDataReply) {
-	reply.Hashes = H.Hashes
-	reply.NChunks = len(H.Hashes)
+func (T *Tracker) SendFileMetaData(args MetaDataArgs, reply MetaDataReply) {
+	reply.Hashes = T.Hashes
+	reply.NChunks = len(T.Hashes)
 }
 
 func FileHashes(file []byte) []byte {
@@ -34,8 +34,16 @@ func FileHashes(file []byte) []byte {
 	return hashes
 }
 
-func (H *Host) SendPeers(args SendPeerArgs, reply SendPeerReply) {
+func (T *Tracker) SendPeers(args SendPeerArgs, reply SendPeerReply) {
 	for i := 0; i < 10; i++ {
-		reply.Peers[i] = H.peers[nrand()%len(H.peers)]
+		reply.Peers[i] = T.peers[nrand()%len(T.peers)]
 	}
+}
+
+func StartTracker(data []byte) *Tracker {
+	t := &Tracker{}
+	p := MakeSeedPeer(t.Hashes, data)
+	t.peers = make([]labrpc.ClientEnd, 0)
+	t.Hashes = FileHashes(data)
+	return t
 }

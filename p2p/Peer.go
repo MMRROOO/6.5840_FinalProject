@@ -1,4 +1,4 @@
-package main
+package p2p
 
 import (
 	"crypto/sha256"
@@ -104,9 +104,11 @@ func (P *Peer) ticker(peer int) {
 }
 
 func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
-	P := new(Peer)
+	P := &Peer{}
 	P.Hashes = hashes
 	P.Tracker = tracker
+	P.ChunksOwned = make([]bool, (len(hashes) / 32))
+
 	args := SendPeerArgs{}
 	reply := SendPeerReply{}
 	P.Tracker.Call("Tracker.SendPeers", &args, &reply)
@@ -115,5 +117,17 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 		go P.ticker(i)
 	}
 
+	return P
+}
+
+func MakeSeedPeer(hashes []byte, data []byte, tracker *labrpc.ClientEnd) *Peer {
+	P := &Peer{}
+	P.Hashes = hashes
+	P.Tracker = tracker
+	P.DataOwned = data
+	P.ChunksOwned = make([]bool, (len(data) / 1024))
+	for i := 0; i < len(P.ChunksOwned); i++ {
+		P.ChunksOwned[i] = true
+	}
 	return P
 }
