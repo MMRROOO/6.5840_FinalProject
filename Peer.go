@@ -10,7 +10,7 @@ type Peer struct {
 	ChunksOwned []bool
 	Hashes      []byte
 	Peers       []*labrpc.ClientEnd
-	Host        *labrpc.ClientEnd
+	Tracker     *labrpc.ClientEnd
 }
 
 func (P *Peer) GetMetaData() {
@@ -31,7 +31,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 	args := GetChunkArgs{}
 	args.Chunk = chunk
 	reply := GetChunkReply{}
-	ok := P.Host.Call("Host.SendChunk", &args, &reply)
+	ok := peer.Call("Host.SendChunk", &args, &reply)
 
 	if ok && reply.Valid {
 		if P.CheckHash(reply.Data, chunk) {
@@ -103,11 +103,15 @@ func (P *Peer) ticker(peer int) {
 	}
 }
 
-func MakePeer(peers []*labrpc.ClientEnd, host *labrpc.ClientEnd) *Peer {
+func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 	P := new(Peer)
-	P.Peers = peers
-	P.Host = host
-	for i := 0; i < len(peers); i++ {
+	P.Hashes = hashes
+	P.Tracker = tracker
+	args := SendPeerArgs{}
+	reply := SendPeerReply{}
+	P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+	P.Peers = reply.Peers
+	for i := 0; i < len(P.Peers); i++ {
 		go P.ticker(i)
 	}
 
