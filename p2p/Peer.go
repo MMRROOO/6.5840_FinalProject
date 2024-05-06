@@ -2,7 +2,10 @@ package p2p
 
 import (
 	"crypto/sha256"
+	"sync/atomic"
 	"time"
+
+	"torrent/labrpc"
 )
 
 type Peer struct {
@@ -11,15 +14,16 @@ type Peer struct {
 	Hashes      []byte
 	Peers       []*labrpc.ClientEnd
 	Tracker     *labrpc.ClientEnd
+	dead        int32
 }
 
 func (P *Peer) GetMetaData() {
 	args := MetaDataArgs{}
 	reply := MetaDataReply{}
 
-	ok := P.Host.Call("Host.SendFileMetaData", &args, &reply)
+	ok := P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
 	if !ok {
-		ok = P.Host.Call("Host.SendFileMetaData", &args, &reply)
+		ok = P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
 
 	}
 
@@ -28,10 +32,10 @@ func (P *Peer) GetMetaData() {
 }
 
 func (P *Peer) GetChunk(peer int, chunk int) bool {
-	args := GetChunkArgs{}
+	args := SendChunkArgs{}
 	args.Chunk = chunk
-	reply := GetChunkReply{}
-	ok := peer.Call("Host.SendChunk", &args, &reply)
+	reply := SendChunkReply{}
+	ok := P.Peers[peer].Call("Peer.SendChunk", &args, &reply)
 
 	if ok && reply.Valid {
 		if P.CheckHash(reply.Data, chunk) {
@@ -44,10 +48,10 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 	return false
 }
 
-func (P *Peer) SendChunk(args *GetChunkArgs, reply *GetChunkReply) {
+func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
 	if P.ChunksOwned[args.Chunk] {
 		for i := 0; i < 1024; i++ {
-			reply.Data[i] = P.DataOwned[args.chunk*1024+i]
+			reply.Data[i] = P.DataOwned[args.Chunk*1024+i]
 		}
 
 		reply.Valid = true
@@ -71,14 +75,14 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 }
 
 func (P *Peer) GetChunksToRequest(peer int) []int {
-	args := GetChunksToRequestArgs{}
-	reply := GetChunksToRequestReply{}
-	ok := P.Host.Call("Host.SendChunksOwned", &args, &reply)
+	args := SendChunksOwnedArgs{}
+	reply := SendChunksOwnedReply{}
+	ok := P.Peers[peer].Call("Peer.SendChunksOwned", &args, &reply)
 
 	if ok {
 		ChunksToRequest := make([]int, 0)
 		for i := 0; i < len(ChunksToRequest); i++ {
-			if reply.ChunksOwned[i] & (!P.ChunksOwned[i]) {
+			if reply.ChunksOwned[i] && (!P.ChunksOwned[i]) {
 				ChunksToRequest = append(ChunksToRequest, i)
 			}
 		}
@@ -88,13 +92,23 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 	return make([]int, 0)
 }
 
-func (P *Peer) SendChunksOwned(args *GetChunksToRequestArgs, reply *GetChunksToRequestReply) {
+func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
 	reply.ChunksOwned = P.ChunksOwned
 
 }
 
+func (pr *Peer) Kill() {
+	atomic.StoreInt32(&pr.dead, 1)
+	// Your code here, if desired.
+}
+
+func (pr *Peer) killed() bool {
+	z := atomic.LoadInt32(&pr.dead)
+	return z == 1
+}
+
 func (P *Peer) ticker(peer int) {
-	for killed() == false {
+	for P.killed() == false {
 		toRequest := P.GetChunksToRequest(peer)
 		for i := 0; i < len(toRequest); i++ {
 			P.GetChunk(peer, toRequest[i])
@@ -120,10 +134,10 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 	return P
 }
 
-func MakeSeedPeer(hashes []byte, data []byte, tracker *labrpc.ClientEnd) *Peer {
+// removed tracker temporarily to allow the testing to build
+func MakeSeedPeer(hashes []byte, data []byte) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes
-	P.Tracker = tracker
 	P.DataOwned = data
 	P.ChunksOwned = make([]bool, (len(data) / 1024))
 	for i := 0; i < len(P.ChunksOwned); i++ {

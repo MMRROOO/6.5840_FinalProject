@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"sync"
 
-	"6.5840_FINALPROJECT/labrpc"
+	"torrent/labrpc"
 )
 
 func makeSeed() int64 {

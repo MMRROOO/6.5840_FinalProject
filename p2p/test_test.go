@@ -1,5 +1,10 @@
 package p2p
 
-func simpleTest() {
+import (
+	"fmt"
+	"testing"
+)
 
+func TestBasic(t *testing.T) {
+	fmt.Println("hello world")
 }
