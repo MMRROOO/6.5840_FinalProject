@@ -2,6 +2,7 @@ package p2p
 
 import (
 	crand "crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -61,6 +62,17 @@ func makeConfig(data []byte, n int, unreliable bool) *testConfig {
 	cfg.net.Reliable(!unreliable)
 
 	return cfg
+}
+
+func (cfg *testConfig) FileHashes() {
+	hashes := make([]byte, (len(cfg.Data)/1024)*32)
+	for chunk := 0; chunk < len(cfg.Data); chunk++ {
+		H := sha256.Sum256(cfg.Data[chunk : chunk+1024])
+		for i := 0; i < 32; i++ {
+			hashes[chunk*32+i] = H[i]
+		}
+	}
+	cfg.hashes = hashes
 }
 
 func (cfg *testConfig) StartServer(Data []byte) {
