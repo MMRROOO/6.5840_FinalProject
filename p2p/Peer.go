@@ -134,10 +134,6 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 	return P
 }
 
-<<<<<<< HEAD
-// removed tracker temporarily to allow the testing to build
-=======
->>>>>>> 4ddb4801083dfc09607c182db24a7a404b5df663
 func MakeSeedPeer(hashes []byte, data []byte) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes

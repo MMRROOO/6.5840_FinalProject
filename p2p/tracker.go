@@ -39,7 +39,7 @@ func FileHashes(file []byte) []byte {
 
 func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
 	for i := 0; i < 10; i++ {
-		reply.Peers[i] = T.peers[nrand()%len(T.peers)]
+		reply.Peers[i] = T.peers[args.Me][nrand()%len(T.peers)]
 	}
 }
 

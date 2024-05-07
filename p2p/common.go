@@ -27,6 +27,7 @@ type SendChunksOwnedReply struct {
 }
 
 type SendPeerArgs struct {
+	Me int
 }
 
 type SendPeerReply struct {
