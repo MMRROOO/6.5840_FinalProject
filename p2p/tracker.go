@@ -9,9 +9,9 @@ import (
 )
 
 type Tracker struct {
-	Hashes   []byte
-	peers    []*labrpc.ClientEnd
-	SeedPeer *Peer
+	Hashes      []byte
+	peers       [][]*labrpc.ClientEnd
+	activePeers []bool
 }
 
 func nrand() int {
@@ -37,16 +37,17 @@ func FileHashes(file []byte) []byte {
 	return hashes
 }
 
-func (T *Tracker) SendPeers(args SendPeerArgs, reply SendPeerReply) {
+func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
 	for i := 0; i < 10; i++ {
 		reply.Peers[i] = T.peers[nrand()%len(T.peers)]
 	}
 }
 
-func StartTracker(data []byte) *Tracker {
+func MakeTracker(data []byte, endpoints [][]*labrpc.ClientEnd) *Tracker {
 	t := &Tracker{}
-	t.peers = make([]*labrpc.ClientEnd, 0)
 	t.Hashes = FileHashes(data)
-	t.SeedPeer = MakeSeedPeer(t.Hashes, data)
+	t.peers = endpoints
+	t.activePeers[0] = true
+
 	return t
 }
