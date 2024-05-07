@@ -11,7 +11,7 @@ type Peer struct {
 	DataOwned   []byte
 	ChunksOwned []bool
 	Hashes      []byte
-	endpoints   [][]string
+	Peers       []*labrpc.ClientEnd
 	Tracker     *labrpc.ClientEnd
 }
 
@@ -122,10 +122,9 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 	return P
 }
 
-func MakeSeedPeer(hashes []byte, data []byte, tracker *labrpc.ClientEnd) *Peer {
+func MakeSeedPeer(hashes []byte, data []byte) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes
-	P.Tracker = tracker
 	P.DataOwned = data
 	P.ChunksOwned = make([]bool, (len(data) / 1024))
 	for i := 0; i < len(P.ChunksOwned); i++ {

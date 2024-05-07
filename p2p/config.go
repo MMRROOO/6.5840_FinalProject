@@ -27,7 +27,7 @@ func randstring(n int) string {
 	return s[0:n]
 }
 
-var SERVERID = 0
+var TRACKERID = 0
 
 type testConfig struct {
 	mu        sync.Mutex
@@ -35,6 +35,7 @@ type testConfig struct {
 	tracker   *Tracker
 	peers     []*Peer
 	endnames  [][]string
+	endpoints [][]*labrpc.ClientEnd
 	Data      []byte
 	hashes    []byte
 	connected []bool // whether each peer is on the net
@@ -56,8 +57,15 @@ func makeConfig(data []byte, n int, unreliable bool) *testConfig {
 	cfg.net = labrpc.MakeNetwork()
 	cfg.peers = make([]*Peer, cfg.n)
 	cfg.endnames = make([][]string, cfg.n)
+	cfg.endpoints = make([][]*labrpc.ClientEnd, cfg.n)
+	for i := 0; i < cfg.n; i++ {
+		for j := 0; j < cfg.n; j++ {
+			cfg.endpoints[i][j] = cfg.net.MakeEnd(cfg.endnames[i][j])
+			cfg.net.Enable(cfg.endnames[i][j], false)
+		}
+	}
 
-	cfg.StartServer(data)
+	cfg.StartTracker(data)
 
 	cfg.net.Reliable(!unreliable)
 
@@ -75,22 +83,38 @@ func (cfg *testConfig) FileHashes() {
 	cfg.hashes = hashes
 }
 
-func (cfg *testConfig) StartServer(Data []byte) {
+func (cfg *testConfig) StartTracker(Data []byte) {
 
-	cfg.tracker = StartTracker(Data, cfg.endnames)
+	cfg.tracker = MakeTracker(Data, cfg.endpoints)
 
 	service := labrpc.MakeService(cfg.tracker)
 	srv := labrpc.MakeServer()
 	srv.AddService(service)
-	cfg.net.AddServer(0, srv)
+	cfg.net.AddServer(TRACKERID, srv)
+
+	P := MakeSeedPeer(cfg.hashes, cfg.Data)
+	cfg.peers[0] = P
+	svcP := labrpc.MakeService(P)
+	srvP := labrpc.MakeServer()
+	srvP.AddService(svcP)
+	cfg.net.AddServer(1, srvP)
 }
 
-func (cfg *testConfig) StartPeer() *Peer {
+func (cfg *testConfig) StartPeer(i int) *Peer {
 	endname := randstring(20)
-	end := cfg.net.MakeEnd(endname)
-	cfg.net.Connect(endname, SERVERID)
+	serverEnd := cfg.net.MakeEnd(endname)
+	cfg.net.Connect(endname, TRACKERID)
 
-	P := MakePeer(cfg.hashes, end)
+	P := MakePeer(cfg.hashes, serverEnd)
+
+	cfg.peers[i] = P
+
+	svc := labrpc.MakeService(P)
+	srv := labrpc.MakeServer()
+	srv.AddService(svc)
+	cfg.net.AddServer(i, srv)
+
+	cfg.connect(i)
 	return P
 }
 

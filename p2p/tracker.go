@@ -4,11 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"math/big"
+
+	"6.5840/6.5840_FinalProject/labrpc"
 )
 
 type Tracker struct {
-	Hashes []byte
-	peers  [][]string
+	Hashes      []byte
+	peers       [][]*labrpc.ClientEnd
+	activePeers []bool
 }
 
 func nrand() int {
@@ -34,18 +37,17 @@ func FileHashes(file []byte) []byte {
 	return hashes
 }
 
-func (T *Tracker) SendPeers(args SendPeerArgs, reply SendPeerReply) {
+func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
 	for i := 0; i < 10; i++ {
 		reply.Peers[i] = T.peers[nrand()%len(T.peers)]
 	}
 }
 
-func StartTracker(data []byte, endnames [][]string) *Tracker {
+func MakeTracker(data []byte, endpoints [][]*labrpc.ClientEnd) *Tracker {
 	t := &Tracker{}
 	t.Hashes = FileHashes(data)
-	p := MakeSeedPeer(t.Hashes, data)
-	t.peers = endnames
-	t.peers = append(t.peers, p)
+	t.peers = endpoints
+	t.activePeers[0] = true
 
 	return t
 }
