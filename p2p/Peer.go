@@ -3,13 +3,15 @@ package p2p
 import (
 	"crypto/sha256"
 	"time"
+
+	"6.5840/6.5840_FinalProject/labrpc"
 )
 
 type Peer struct {
 	DataOwned   []byte
 	ChunksOwned []bool
 	Hashes      []byte
-	Peers       []*labrpc.ClientEnd
+	endpoints   [][]string
 	Tracker     *labrpc.ClientEnd
 }
 
