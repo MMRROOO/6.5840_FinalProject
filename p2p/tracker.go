@@ -28,7 +28,8 @@ func (T *Tracker) SendFileMetaData(args MetaDataArgs, reply MetaDataReply) {
 
 func FileHashes(file []byte) []byte {
 	hashes := make([]byte, (len(file)/1024)*32)
-	for chunk := 0; chunk < len(file); chunk++ {
+
+	for chunk := 0; chunk < (len(file) / 1024); chunk++ {
 		H := sha256.Sum256(file[chunk : chunk+1024])
 		for i := 0; i < 32; i++ {
 			hashes[chunk*32+i] = H[i]
@@ -47,6 +48,7 @@ func MakeTracker(data []byte, endpoints [][]*labrpc.ClientEnd) *Tracker {
 	t := &Tracker{}
 	t.Hashes = FileHashes(data)
 	t.peers = endpoints
+	t.activePeers = make([]bool, len(endpoints))
 	t.activePeers[0] = true
 
 	return t

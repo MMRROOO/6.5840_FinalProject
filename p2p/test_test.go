@@ -7,7 +7,7 @@ import (
 
 func TestBasic(t *testing.T) {
 	fmt.Println("hello world")
-	fmt.Printf("%v", 7/3)
+	fmt.Printf("%v\n", 7/3)
 }
 
 func TestTracker(t *testing.T) {

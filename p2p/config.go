@@ -136,7 +136,7 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 func (cfg *testConfig) VerifyData(i int) (bool, bool) {
 	peer := cfg.peers[i]
 	// num chunks = num_bytes/1024 rounded up
-	for i := 0; i <= (len(cfg.data) / 1024); i++ {
+	for i := 0; i < (len(cfg.data) / 1024); i++ {
 		if !peer.ChunksOwned[i] {
 			return false, false
 		}
