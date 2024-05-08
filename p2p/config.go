@@ -71,11 +71,10 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 	cfg.data = make([]byte, len(data))
 	cfg.connected = make([]bool, cfg.n)
 	cfg.connected[0] = true
-
-	cfg.FileHashes()
 	for i, filebyte := range data {
 		cfg.data[i] = filebyte
 	}
+	cfg.FileHashes()
 
 	for i := 0; i < cfg.n; i++ {
 		cfg.endnames[i] = make([]string, cfg.n)

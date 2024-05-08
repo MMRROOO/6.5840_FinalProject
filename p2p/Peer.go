@@ -42,19 +42,16 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 	reply := SendChunkReply{}
 	ok := P.allpeers[peer].Call("Peer.SendChunk", &args, &reply)
 	if ok && reply.Valid {
-		fmt.Print("------------------------\n")
-		fmt.Print(reply.Data[0:10], chunk, "\n")
-		fmt.Print("------------------------\n")
 
-		// if P.CheckHash(reply.Data, chunk) {
+		if P.CheckHash(reply.Data, chunk) {
 
-		for i := 0; i < 1024; i++ {
-			P.DataOwned[chunk*1024+i] = reply.Data[i]
+			for i := 0; i < 1024; i++ {
+				P.DataOwned[chunk*1024+i] = reply.Data[i]
+			}
+			P.ChunksOwned[chunk] = true
+
+			return true
 		}
-		P.ChunksOwned[chunk] = true
-
-		return true
-		// }
 	}
 	return false
 }
@@ -77,7 +74,6 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 		return false
 	}
 	newHash := sha256.Sum256(Data)
-
 	for i := 0; i < 32; i++ {
 		if newHash[i] != P.Hashes[chunk*32+i] {
 			return false
@@ -89,15 +85,12 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 func (P *Peer) GetChunksToRequest(peer int) []int {
 	args := SendChunksOwnedArgs{}
 	reply := SendChunksOwnedReply{}
-	fmt.Printf("Peer %v requesting ownership from peer %v\n", P.me, peer)
 
 	ok := P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
 	if ok {
 		ChunksToRequest := make([]int, 0)
-		fmt.Print(P.NChunks, len(P.ChunksOwned), len(ChunksToRequest), len(reply.ChunksOwned))
 
 		for i := 0; i < P.NChunks; i++ {
-			fmt.Print(i)
 			if reply.ChunksOwned[i] && (!P.ChunksOwned[i]) {
 				ChunksToRequest = append(ChunksToRequest, i)
 			}
@@ -109,7 +102,6 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 }
 
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
-	fmt.Println("chunk ownership requested")
 	reply.ChunksOwned = P.ChunksOwned
 }
 
@@ -127,7 +119,6 @@ func (P *Peer) ticker(peer int) {
 	fmt.Printf("in ticker\n")
 
 	for P.killed() == false {
-		fmt.Print(P.ChunksOwned)
 
 		toRequest := P.GetChunksToRequest(peer)
 		for i := 0; i < len(toRequest); i++ {
@@ -158,7 +149,6 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 func (P *Peer) jump() {
 	args := SendPeerArgs{P.me}
 	reply := SendPeerReply{}
-	fmt.Print("before send peers call\n")
 	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
 	if !ok {
 		fmt.Println("sent not work")
