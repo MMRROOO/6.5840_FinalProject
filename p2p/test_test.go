@@ -54,7 +54,7 @@ func TestDownloads(t *testing.T) {
 	for !owned {
 		time.Sleep(100 * time.Millisecond)
 		owned, matched = cfg.VerifyData(1)
-		fmt.Print(cfg.peers[1].ChunksOwned)
+		fmt.Print(cfg.peers[2].ChunksOwned)
 	}
 
 	if !owned {
