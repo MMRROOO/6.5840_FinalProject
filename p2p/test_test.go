@@ -37,11 +37,7 @@ func TestTracker(t *testing.T) {
 
 func TestDownloads(t *testing.T) {
 	servers := 2
-<<<<<<< HEAD
 	DATA_SIZE := 1024 * 4
-=======
-	DATA_SIZE := 4 * 1024
->>>>>>> 28a539dda1ca8db381539d1ad79cbdd9ea464748
 	data := make([]byte, DATA_SIZE)
 	for i := 0; i < DATA_SIZE; i++ {
 		data[i] = byte(i)
