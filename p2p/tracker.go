@@ -3,6 +3,7 @@ package p2p
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 	"math/big"
 
 	"torrent/labrpc"
@@ -39,6 +40,8 @@ func FileHashes(file []byte) []byte {
 }
 
 func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
+	fmt.Printf("sending peers\n")
+
 	for i := 0; i < 10; i++ {
 		reply.Peers[i] = T.peers[args.Me][nrand()%len(T.peers)]
 	}

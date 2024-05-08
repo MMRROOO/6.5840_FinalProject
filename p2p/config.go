@@ -69,15 +69,23 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 	cfg.endpoints = make([][]*labrpc.ClientEnd, cfg.n)
 	cfg.start = time.Now()
 	cfg.data = make([]byte, len(data))
+	cfg.connected = make([]bool, cfg.n)
+
+	cfg.FileHashes()
 	for i, filebyte := range data {
 		cfg.data[i] = filebyte
 	}
-	// for i := 0; i < cfg.n; i++ {
-	// 	for j := 0; j < cfg.n; j++ {
-	// 		cfg.endpoints[i][j] = cfg.net.MakeEnd(cfg.endnames[i][j])
-	// 		cfg.net.Enable(cfg.endnames[i][j], false)
-	// 	}
-	// }
+
+	for i := 0; i < cfg.n; i++ {
+		cfg.endnames[i] = make([]string, cfg.n)
+		cfg.endpoints[i] = make([]*labrpc.ClientEnd, cfg.n)
+
+		for j := 0; j < cfg.n; j++ {
+			cfg.endnames[i][j] = randstring(20)
+			cfg.endpoints[i][j] = cfg.net.MakeEnd(cfg.endnames[i][j])
+			cfg.net.Enable(cfg.endnames[i][j], false)
+		}
+	}
 
 	cfg.StartTracker(data)
 
@@ -88,7 +96,7 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 
 func (cfg *testConfig) FileHashes() {
 	hashes := make([]byte, (len(cfg.data)/1024)*32)
-	for chunk := 0; chunk < len(cfg.data); chunk++ {
+	for chunk := 0; chunk < len(cfg.data)/1024; chunk++ {
 		H := sha256.Sum256(cfg.data[chunk : chunk+1024])
 		for i := 0; i < 32; i++ {
 			hashes[chunk*32+i] = H[i]
@@ -112,6 +120,7 @@ func (cfg *testConfig) StartTracker(Data []byte) {
 	srvP := labrpc.MakeServer()
 	srvP.AddService(svcP)
 	cfg.net.AddServer(1, srvP)
+
 }
 
 func (cfg *testConfig) StartPeer(i int) *Peer {

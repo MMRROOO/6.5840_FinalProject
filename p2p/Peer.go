@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -32,6 +33,8 @@ func (P *Peer) GetMetaData() {
 }
 
 func (P *Peer) GetChunk(peer int, chunk int) bool {
+	fmt.Printf("requesting chunk %d\n", chunk)
+
 	args := SendChunkArgs{}
 	args.Chunk = chunk
 	reply := SendChunkReply{}
@@ -49,6 +52,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 }
 
 func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
+	fmt.Printf("sending chunk %d\n", args.Chunk)
 	if P.ChunksOwned[args.Chunk] {
 		for i := 0; i < 1024; i++ {
 			reply.Data[i] = P.DataOwned[args.Chunk*1024+i]
@@ -108,6 +112,7 @@ func (pr *Peer) killed() bool {
 }
 
 func (P *Peer) ticker(peer int) {
+	fmt.Printf("in ticker\n")
 	for P.killed() == false {
 		toRequest := P.GetChunksToRequest(peer)
 		for i := 0; i < len(toRequest); i++ {
@@ -122,16 +127,21 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
 	P.Hashes = hashes
 	P.Tracker = tracker
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
+	go P.jump()
 
+	return P
+}
+
+func (P *Peer) jump() {
 	args := SendPeerArgs{}
 	reply := SendPeerReply{}
+	fmt.Print("before send peers call\n")
 	P.Tracker.Call("Tracker.SendPeers", &args, &reply)
 	P.Peers = reply.Peers
 	for i := 0; i < len(P.Peers); i++ {
 		go P.ticker(i)
 	}
 
-	return P
 }
 
 func MakeSeedPeer(hashes []byte, data []byte) *Peer {
