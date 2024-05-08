@@ -38,6 +38,12 @@ func TestDownloads(t *testing.T) {
 	for i := 0; i < DATA_SIZE; i++ {
 		data[i] = byte(i)
 	}
+	for i := 0; i < DATA_SIZE/1024; i++ {
+		fmt.Print("----------------------------------\n")
+		fmt.Print(data[i*1024+0:i*1024+10], "\n")
+		fmt.Print("----------------------------------\n")
+	}
+
 	cfg := makeConfig(t, data, servers, false)
 	defer cfg.cleanup()
 

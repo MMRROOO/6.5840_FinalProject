@@ -84,8 +84,9 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 		for j := 0; j < cfg.n; j++ {
 			cfg.endnames[i][j] = randstring(20)
 			cfg.endpoints[i][j] = cfg.net.MakeEnd(cfg.endnames[i][j])
-			cfg.net.Connect(cfg.endpoints[i][j], j)
+			cfg.net.Connect(cfg.endnames[i][j], j)
 			cfg.net.Enable(cfg.endnames[i][j], false)
+
 		}
 	}
 
@@ -99,7 +100,7 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 func (cfg *testConfig) FileHashes() {
 	hashes := make([]byte, (len(cfg.data)/1024)*32)
 	for chunk := 0; chunk < len(cfg.data)/1024; chunk++ {
-		H := sha256.Sum256(cfg.data[chunk : chunk+1024])
+		H := sha256.Sum256(cfg.data[chunk*1024 : chunk*1024+1024])
 		for i := 0; i < 32; i++ {
 			hashes[chunk*32+i] = H[i]
 		}

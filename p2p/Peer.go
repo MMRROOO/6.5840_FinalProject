@@ -13,6 +13,7 @@ type Peer struct {
 	DataOwned   []byte
 	ChunksOwned []bool
 	Hashes      []byte
+	NChunks     int
 	allpeers    []*labrpc.ClientEnd
 	knownPeers  []int
 	Tracker     *labrpc.ClientEnd
@@ -35,26 +36,31 @@ func (P *Peer) GetMetaData() {
 }
 
 func (P *Peer) GetChunk(peer int, chunk int) bool {
-	fmt.Printf("requesting chunk %d\n", chunk)
 
 	args := SendChunkArgs{}
 	args.Chunk = chunk
 	reply := SendChunkReply{}
 	ok := P.allpeers[peer].Call("Peer.SendChunk", &args, &reply)
-
 	if ok && reply.Valid {
-		if P.CheckHash(reply.Data, chunk) {
-			for i := 0; i < 1024; i++ {
-				P.DataOwned[chunk*1024+i] = reply.Data[i]
-			}
-			return true
+		fmt.Print("------------------------\n")
+		fmt.Print(reply.Data[0:10], chunk, "\n")
+		fmt.Print("------------------------\n")
+
+		// if P.CheckHash(reply.Data, chunk) {
+
+		for i := 0; i < 1024; i++ {
+			P.DataOwned[chunk*1024+i] = reply.Data[i]
 		}
+		P.ChunksOwned[chunk] = true
+
+		return true
+		// }
 	}
 	return false
 }
 
 func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
-	fmt.Printf("sending chunk %d\n", args.Chunk)
+	reply.Data = make([]byte, 1024)
 	if P.ChunksOwned[args.Chunk] {
 		for i := 0; i < 1024; i++ {
 			reply.Data[i] = P.DataOwned[args.Chunk*1024+i]
@@ -88,7 +94,10 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 	ok := P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
 	if ok {
 		ChunksToRequest := make([]int, 0)
-		for i := 0; i < len(ChunksToRequest); i++ {
+		fmt.Print(P.NChunks, len(P.ChunksOwned), len(ChunksToRequest), len(reply.ChunksOwned))
+
+		for i := 0; i < P.NChunks; i++ {
+			fmt.Print(i)
 			if reply.ChunksOwned[i] && (!P.ChunksOwned[i]) {
 				ChunksToRequest = append(ChunksToRequest, i)
 			}
@@ -118,6 +127,8 @@ func (P *Peer) ticker(peer int) {
 	fmt.Printf("in ticker\n")
 
 	for P.killed() == false {
+		fmt.Print(P.ChunksOwned)
+
 		toRequest := P.GetChunksToRequest(peer)
 		for i := 0; i < len(toRequest); i++ {
 			P.GetChunk(peer, toRequest[i])
@@ -132,6 +143,8 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.Hashes = hashes
 	P.Tracker = tracker
 	P.allpeers = allPeers
+	P.NChunks = len(hashes) / 32
+	P.DataOwned = make([]byte, P.NChunks*1024)
 	args := SendChunksOwnedArgs{}
 	reply := SendChunksOwnedReply{}
 	allPeers[0].Call("Peer.Print", &args, &reply)
