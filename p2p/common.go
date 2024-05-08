@@ -1,7 +1,5 @@
 package p2p
 
-import "torrent/labrpc"
-
 type MetaDataArgs struct {
 }
 
@@ -31,5 +29,5 @@ type SendPeerArgs struct {
 }
 
 type SendPeerReply struct {
-	Peers []*labrpc.ClientEnd
+	Peers []int
 }

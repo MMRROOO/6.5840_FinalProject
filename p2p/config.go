@@ -30,7 +30,7 @@ func randstring(n int) string {
 	return s[0:n]
 }
 
-var TRACKERID = 0
+var TRACKERID = 100
 
 type testConfig struct {
 	mu        sync.Mutex
@@ -70,6 +70,7 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 	cfg.start = time.Now()
 	cfg.data = make([]byte, len(data))
 	cfg.connected = make([]bool, cfg.n)
+	cfg.connected[0] = true
 
 	cfg.FileHashes()
 	for i, filebyte := range data {
@@ -108,17 +109,22 @@ func (cfg *testConfig) FileHashes() {
 
 func (cfg *testConfig) StartTracker(Data []byte) {
 
-	cfg.tracker = MakeTracker(Data, cfg.endpoints)
+	cfg.tracker = MakeTracker(Data)
 	P := MakeSeedPeer(cfg.hashes, cfg.data)
 
 	trackersvc := labrpc.MakeService(cfg.tracker)
-	peersvc := labrpc.MakeService(P)
 	srv := labrpc.MakeServer()
 	srv.AddService(trackersvc)
-	srv.AddService(peersvc)
+	cfg.net.AddServer(TRACKERID, srv)
+
 	cfg.peers[0] = P
 
-	cfg.net.AddServer(TRACKERID, srv)
+	peersvc := labrpc.MakeService(cfg.peers[0])
+	peersrv := labrpc.MakeServer()
+	peersrv.AddService(peersvc)
+	cfg.net.AddServer(0, peersrv)
+	cfg.connect(0)
+
 }
 
 func (cfg *testConfig) StartPeer(i int) *Peer {
@@ -127,11 +133,11 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
 
-	P := MakePeer(cfg.hashes, serverEnd, i)
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i])
 
 	cfg.peers[i] = P
 
-	svc := labrpc.MakeService(P)
+	svc := labrpc.MakeService(cfg.peers[i])
 	srv := labrpc.MakeServer()
 	srv.AddService(svc)
 	cfg.net.AddServer(i, srv)

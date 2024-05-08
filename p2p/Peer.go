@@ -13,7 +13,8 @@ type Peer struct {
 	DataOwned   []byte
 	ChunksOwned []bool
 	Hashes      []byte
-	Peers       []*labrpc.ClientEnd
+	allpeers    []*labrpc.ClientEnd
+	knownPeers  []int
 	Tracker     *labrpc.ClientEnd
 	me          int
 	dead        int32
@@ -39,7 +40,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 	args := SendChunkArgs{}
 	args.Chunk = chunk
 	reply := SendChunkReply{}
-	ok := P.Peers[peer].Call("Peer.SendChunk", &args, &reply)
+	ok := P.allpeers[peer].Call("Peer.SendChunk", &args, &reply)
 
 	if ok && reply.Valid {
 		if P.CheckHash(reply.Data, chunk) {
@@ -83,7 +84,8 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 	args := SendChunksOwnedArgs{}
 	reply := SendChunksOwnedReply{}
 	fmt.Printf("Peer %v requesting ownership from peer %v\n", P.me, peer)
-	ok := P.Peers[peer].Call("Peer.SendChunkswned", &args, &reply)
+
+	ok := P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
 	if ok {
 		ChunksToRequest := make([]int, 0)
 		for i := 0; i < len(ChunksToRequest); i++ {
@@ -114,6 +116,7 @@ func (pr *Peer) killed() bool {
 
 func (P *Peer) ticker(peer int) {
 	fmt.Printf("in ticker\n")
+
 	for P.killed() == false {
 		toRequest := P.GetChunksToRequest(peer)
 		for i := 0; i < len(toRequest); i++ {
@@ -124,10 +127,14 @@ func (P *Peer) ticker(peer int) {
 	fmt.Println("end ticker")
 }
 
-func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int) *Peer {
+func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes
 	P.Tracker = tracker
+	P.allpeers = allPeers
+	args := SendChunksOwnedArgs{}
+	reply := SendChunksOwnedReply{}
+	allPeers[0].Call("Peer.Print", &args, &reply)
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = me
 	go P.jump()
@@ -145,15 +152,18 @@ func (P *Peer) jump() {
 	} else {
 		fmt.Println("sent work")
 	}
-	P.Peers = reply.Peers
-	ok = P.Peers[0].Call("Tracker.SendPeers", &args, &reply)
+	for i := 0; i < len(reply.Peers); i++ {
+		P.knownPeers = append(P.knownPeers, reply.Peers[i])
+	}
+	// P.Peers = reply.Peers
+	ok = P.Tracker.Call("Tracker.SendPeers", &args, &reply)
 	if !ok {
 		fmt.Println("sent not work")
 	} else {
 		fmt.Println("sent work")
 	}
-	for i := 0; i < len(P.Peers); i++ {
-		go P.ticker(i)
+	for i := 0; i < len(P.knownPeers); i++ {
+		go P.ticker(P.knownPeers[i])
 	}
 
 }
