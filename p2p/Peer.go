@@ -15,6 +15,7 @@ type Peer struct {
 	Hashes      []byte
 	Peers       []*labrpc.ClientEnd
 	Tracker     *labrpc.ClientEnd
+	me          int
 	dead        int32
 }
 
@@ -81,8 +82,8 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 func (P *Peer) GetChunksToRequest(peer int) []int {
 	args := SendChunksOwnedArgs{}
 	reply := SendChunksOwnedReply{}
-	ok := P.Peers[peer].Call("Peer.SendChunksOwned", &args, &reply)
-
+	fmt.Printf("Peer %v requesting ownership from peer %v\n", P.me, peer)
+	ok := P.Peers[peer].Call("Peer.SendChunkswned", &args, &reply)
 	if ok {
 		ChunksToRequest := make([]int, 0)
 		for i := 0; i < len(ChunksToRequest); i++ {
@@ -97,8 +98,8 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 }
 
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
+	fmt.Println("chunk ownership requested")
 	reply.ChunksOwned = P.ChunksOwned
-
 }
 
 func (pr *Peer) Kill() {
@@ -120,24 +121,37 @@ func (P *Peer) ticker(peer int) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+	fmt.Println("end ticker")
 }
 
-func MakePeer(hashes []byte, tracker *labrpc.ClientEnd) *Peer {
+func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes
 	P.Tracker = tracker
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
+	P.me = me
 	go P.jump()
 
 	return P
 }
 
 func (P *Peer) jump() {
-	args := SendPeerArgs{}
+	args := SendPeerArgs{P.me}
 	reply := SendPeerReply{}
 	fmt.Print("before send peers call\n")
-	P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+	if !ok {
+		fmt.Println("sent not work")
+	} else {
+		fmt.Println("sent work")
+	}
 	P.Peers = reply.Peers
+	ok = P.Peers[0].Call("Tracker.SendPeers", &args, &reply)
+	if !ok {
+		fmt.Println("sent not work")
+	} else {
+		fmt.Println("sent work")
+	}
 	for i := 0; i < len(P.Peers); i++ {
 		go P.ticker(i)
 	}
@@ -149,6 +163,7 @@ func MakeSeedPeer(hashes []byte, data []byte) *Peer {
 	P.Hashes = hashes
 	P.DataOwned = data
 	P.ChunksOwned = make([]bool, (len(data) / 1024))
+	P.me = 0
 	for i := 0; i < len(P.ChunksOwned); i++ {
 		P.ChunksOwned[i] = true
 	}

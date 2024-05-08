@@ -83,6 +83,7 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 		for j := 0; j < cfg.n; j++ {
 			cfg.endnames[i][j] = randstring(20)
 			cfg.endpoints[i][j] = cfg.net.MakeEnd(cfg.endnames[i][j])
+			cfg.net.Connect(cfg.endpoints[i][j], j)
 			cfg.net.Enable(cfg.endnames[i][j], false)
 		}
 	}
@@ -109,26 +110,29 @@ func (cfg *testConfig) StartTracker(Data []byte) {
 
 	cfg.tracker = MakeTracker(Data, cfg.endpoints)
 
-	service := labrpc.MakeService(cfg.tracker)
-	srv := labrpc.MakeServer()
-	srv.AddService(service)
-	cfg.net.AddServer(TRACKERID, srv)
+	// service := labrpc.MakeService(cfg.tracker)
+	// srv := labrpc.MakeServer()
+	// srv.AddService(service)
+	// cfg.net.AddServer(TRACKERID, srv)
 
 	P := MakeSeedPeer(cfg.hashes, cfg.data)
 	cfg.peers[0] = P
 	svcP := labrpc.MakeService(P)
+	svct := labrpc.MakeService(cfg.tracker)
 	srvP := labrpc.MakeServer()
 	srvP.AddService(svcP)
-	cfg.net.AddServer(1, srvP)
-
+	srvP.AddService(svct)
+	cfg.net.AddServer(0, srvP)
+	cfg.connect(0)
 }
 
 func (cfg *testConfig) StartPeer(i int) *Peer {
 	endname := randstring(20)
 	serverEnd := cfg.net.MakeEnd(endname)
 	cfg.net.Connect(endname, TRACKERID)
+	cfg.net.Enable(endname, true)
 
-	P := MakePeer(cfg.hashes, serverEnd)
+	P := MakePeer(cfg.hashes, serverEnd, i)
 
 	cfg.peers[i] = P
 
@@ -181,7 +185,7 @@ func (cfg *testConfig) disconnect(i int) {
 }
 
 func (cfg *testConfig) connect(i int) {
-	// fmt.Printf("connect(%d)\n", i)
+	fmt.Printf("connect(%d)\n", i)
 
 	cfg.connected[i] = true
 

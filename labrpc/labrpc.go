@@ -75,9 +75,9 @@ type replyMsg struct {
 }
 
 type ClientEnd struct {
-	endname interface{}   // this end-point's name
-	ch      chan reqMsg   // copy of Network.endCh
-	done    chan struct{} // closed when Network is cleaned up
+	Endname interface{}   // this end-point's name
+	Ch      chan reqMsg   // copy of Network.endCh
+	Done    chan struct{} // closed when Network is cleaned up
 }
 
 // send an RPC, wait for the reply.
@@ -85,7 +85,7 @@ type ClientEnd struct {
 // no reply was received from the server.
 func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
 	req := reqMsg{}
-	req.endname = e.endname
+	req.endname = e.Endname
 	req.svcMeth = svcMeth
 	req.argsType = reflect.TypeOf(args)
 	req.replyCh = make(chan replyMsg)
@@ -101,9 +101,9 @@ func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bo
 	// send the request.
 	//
 	select {
-	case e.ch <- req:
+	case e.Ch <- req:
 		// the request has been sent.
-	case <-e.done:
+	case <-e.Done:
 		// entire Network has been destroyed.
 		return false
 	}
@@ -321,9 +321,9 @@ func (rn *Network) MakeEnd(endname interface{}) *ClientEnd {
 	}
 
 	e := &ClientEnd{}
-	e.endname = endname
-	e.ch = rn.endCh
-	e.done = rn.done
+	e.Endname = endname
+	e.Ch = rn.endCh
+	e.Done = rn.done
 	rn.ends[endname] = e
 	rn.enabled[endname] = false
 	rn.connections[endname] = nil
