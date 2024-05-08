@@ -109,21 +109,16 @@ func (cfg *testConfig) FileHashes() {
 func (cfg *testConfig) StartTracker(Data []byte) {
 
 	cfg.tracker = MakeTracker(Data, cfg.endpoints)
-
-	// service := labrpc.MakeService(cfg.tracker)
-	// srv := labrpc.MakeServer()
-	// srv.AddService(service)
-	// cfg.net.AddServer(TRACKERID, srv)
-
 	P := MakeSeedPeer(cfg.hashes, cfg.data)
+
+	trackersvc := labrpc.MakeService(cfg.tracker)
+	peersvc := labrpc.MakeService(P)
+	srv := labrpc.MakeServer()
+	srv.AddService(trackersvc)
+	srv.AddService(peersvc)
 	cfg.peers[0] = P
-	svcP := labrpc.MakeService(P)
-	svct := labrpc.MakeService(cfg.tracker)
-	srvP := labrpc.MakeServer()
-	srvP.AddService(svcP)
-	srvP.AddService(svct)
-	cfg.net.AddServer(0, srvP)
-	cfg.connect(0)
+
+	cfg.net.AddServer(TRACKERID, srv)
 }
 
 func (cfg *testConfig) StartPeer(i int) *Peer {
@@ -148,6 +143,7 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 // Outputs first whether data is owned completely, secondly whether it matches
 func (cfg *testConfig) VerifyData(i int) (bool, bool) {
 	peer := cfg.peers[i]
+
 	// num chunks = num_bytes/1024 rounded up
 	for i := 0; i < (len(cfg.data) / 1024); i++ {
 		if !peer.ChunksOwned[i] {
