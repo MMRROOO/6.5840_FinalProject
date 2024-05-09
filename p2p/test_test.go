@@ -69,31 +69,42 @@ func TestMultiPeerDownload(t *testing.T) {
 	for i := 1; i < cfg.n; i++ {
 		cfg.StartPeer(i)
 	}
-	replies := make(chan bool, cfg.n)
-	waitVerify := func(i int, replChan chan bool) {
-		owned, matched := cfg.VerifyData(i)
-		for !owned {
-			time.Sleep(20 * time.Millisecond)
-			owned, matched = cfg.VerifyData(i)
-		}
-		replChan <- matched
-	}
+	peerList := make([]int, cfg.n-1)
 	for i := 1; i < cfg.n; i++ {
-		go waitVerify(i, replies)
+		peerList[i-1] = i
 	}
-	repliesLeft := cfg.n - 1 //not checking seed peer
-	for repliesLeft > 0 {
-		select {
-		case matched := <-replies:
-			if !matched {
-				t.Fatal("Peer did not copy data correctly")
-			} else {
-				repliesLeft = repliesLeft - 1
-			}
-		default:
-			cfg.checkTimeout()
-			time.Sleep(20 * time.Millisecond)
-		}
+	cfg.MultiVerify(peerList)
+	cfg.end()
+}
+
+func TestNonSeedSingleDownload(t *testing.T) {
+	servers := 3
+	DATA_SIZE := 4 * 1024
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, false)
+	defer cfg.cleanup()
+	cfg.begin("Test - NonSeedSingleDownload")
+
+	cfg.VerifyDataErr(0, true)
+	cfg.StartPeer(1)
+	matched := false
+	for owned := false; !owned; owned, matched = cfg.VerifyData(1) {
 	}
+	if !matched {
+		t.Fatal("Peer did not copy data correctly")
+	}
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+	DPrintf("beginning choking test")
+	seed := cfg.peers[0]
+	seed.chokeStatus(2)
+	seed.ChokeToggle(true)
+	cfg.StartPeer(2)
+	peerList := make([]int, 0)
+	peerList = append(peerList, 2)
+	DPrintf("peerlist %v", peerList)
+	cfg.MultiVerify(peerList)
+	//cfg.VerifyDataErr(2, true)
 	cfg.end()
 }

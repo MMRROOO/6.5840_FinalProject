@@ -169,13 +169,43 @@ func (cfg *testConfig) VerifyDataErr(i int, raiseErr bool) (bool, bool) {
 	owned, matched := cfg.VerifyData(i)
 	if raiseErr {
 		if !owned {
-			cfg.t.Fatal("Tracker peer does not owned seed data")
+			cfg.t.Fatal("Peer does not owned seed data")
 		}
 		if !matched {
-			cfg.t.Fatal("Tracker did not copy data correctly")
+			cfg.t.Fatal("Peer did not copy data correctly")
 		}
 	}
 	return owned, matched
+}
+
+func (cfg *testConfig) MultiVerify(peerList []int) {
+	replies := make(chan bool, cfg.n)
+	waitVerify := func(i int, replChan chan bool) {
+		owned, matched := cfg.VerifyData(i)
+		for !owned {
+			time.Sleep(20 * time.Millisecond)
+			owned, matched = cfg.VerifyData(i)
+		}
+		DPrintf("peer %v has matched: %v", i, matched)
+		replChan <- matched
+	}
+	for _, peerID := range peerList {
+		go waitVerify(peerID, replies)
+	}
+	repliesLeft := len(peerList) //not checking seed peer
+	for repliesLeft > 0 {
+		select {
+		case matched := <-replies:
+			if !matched {
+				cfg.t.Fatal("Peer did not copy data correctly")
+			} else {
+				repliesLeft = repliesLeft - 1
+			}
+		default:
+			cfg.checkTimeout()
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
 }
 
 func (cfg *testConfig) disconnect(i int) {

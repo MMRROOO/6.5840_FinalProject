@@ -2,7 +2,7 @@ package p2p
 
 import "fmt"
 
-const Debug bool = false
+const Debug bool = true
 
 func DPrintf(format string, a ...interface{}) {
 	if Debug {
@@ -19,6 +19,7 @@ type MetaDataReply struct {
 }
 
 type SendChunkArgs struct {
+	Me    int
 	Chunk int
 }
 

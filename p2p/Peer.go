@@ -2,13 +2,20 @@ package p2p
 
 import (
 	"crypto/sha256"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"torrent/labrpc"
 )
 
+type flag struct {
+	peer int
+	flag bool
+}
+
 type Peer struct {
+	mu          sync.Mutex
 	DataOwned   []byte
 	ChunksOwned []bool
 	Hashes      []byte
@@ -16,6 +23,7 @@ type Peer struct {
 	allpeers    []*labrpc.ClientEnd
 	knownPeers  []int
 	Tracker     *labrpc.ClientEnd
+	choked      []flag //indicate which peers don't recieve upload chunks
 	me          int
 	dead        int32
 }
@@ -48,7 +56,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 				P.DataOwned[chunk*1024+i] = reply.Data[i]
 			}
 			P.ChunksOwned[chunk] = true
-
+			DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
 			return true
 		}
 	}
@@ -56,8 +64,10 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 }
 
 func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
-	reply.Data = make([]byte, 1024)
-	if P.ChunksOwned[args.Chunk] {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+	if !P.chokeStatus(args.Me) && P.ChunksOwned[args.Chunk] {
+		reply.Data = make([]byte, 1024)
 		for i := 0; i < 1024; i++ {
 			reply.Data[i] = P.DataOwned[args.Chunk*1024+i]
 		}
@@ -102,6 +112,25 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
 	reply.ChunksOwned = P.ChunksOwned
+}
+
+// Will set choked for all peers to chokeFlag
+func (P *Peer) ChokeToggle(chokeFlag bool) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+	for i := 0; i < len(P.choked); i++ {
+		P.choked[i].flag = chokeFlag
+	}
+}
+
+func (P *Peer) chokeStatus(peer int) bool {
+	for _, flag := range P.choked {
+		if flag.peer == peer {
+			return flag.flag
+		}
+	}
+	P.choked = append(P.choked, flag{peer, false})
+	return false
 }
 
 func (pr *Peer) Kill() {
@@ -154,6 +183,7 @@ func (P *Peer) jump() {
 	for i := 0; i < len(reply.Peers); i++ {
 		P.knownPeers = append(P.knownPeers, reply.Peers[i])
 	}
+	DPrintf("Peer %v recieved peers: %v", P.me, P.knownPeers)
 	for i := 0; i < len(P.knownPeers); i++ {
 		go P.ticker(P.knownPeers[i])
 	}
