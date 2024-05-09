@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -116,7 +115,7 @@ func (pr *Peer) killed() bool {
 }
 
 func (P *Peer) ticker(peer int) {
-	fmt.Printf("in ticker\n")
+	DPrintf("in ticker\n")
 
 	for P.killed() == false {
 
@@ -126,7 +125,6 @@ func (P *Peer) ticker(peer int) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	fmt.Println("end ticker")
 }
 
 func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd) *Peer {
@@ -151,19 +149,10 @@ func (P *Peer) jump() {
 	reply := SendPeerReply{}
 	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
 	if !ok {
-		fmt.Println("sent not work")
-	} else {
-		fmt.Println("sent work")
+		DPrintf("sent not work")
 	}
 	for i := 0; i < len(reply.Peers); i++ {
 		P.knownPeers = append(P.knownPeers, reply.Peers[i])
-	}
-	// P.Peers = reply.Peers
-	ok = P.Tracker.Call("Tracker.SendPeers", &args, &reply)
-	if !ok {
-		fmt.Println("sent not work")
-	} else {
-		fmt.Println("sent work")
 	}
 	for i := 0; i < len(P.knownPeers); i++ {
 		go P.ticker(P.knownPeers[i])

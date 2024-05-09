@@ -1,5 +1,15 @@
 package p2p
 
+import "fmt"
+
+const Debug bool = false
+
+func DPrintf(format string, a ...interface{}) {
+	if Debug {
+		fmt.Printf(format, a...)
+	}
+}
+
 type MetaDataArgs struct {
 }
 

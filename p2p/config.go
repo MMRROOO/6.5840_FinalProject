@@ -164,6 +164,20 @@ func (cfg *testConfig) VerifyData(i int) (bool, bool) {
 	return true, true
 }
 
+// Wrapper for verify data to compact tests
+func (cfg *testConfig) VerifyDataErr(i int, raiseErr bool) (bool, bool) {
+	owned, matched := cfg.VerifyData(i)
+	if raiseErr {
+		if !owned {
+			cfg.t.Fatal("Tracker peer does not owned seed data")
+		}
+		if !matched {
+			cfg.t.Fatal("Tracker did not copy data correctly")
+		}
+	}
+	return owned, matched
+}
+
 func (cfg *testConfig) disconnect(i int) {
 	// fmt.Printf("disconnect(%d)\n", i)
 
@@ -187,7 +201,7 @@ func (cfg *testConfig) disconnect(i int) {
 }
 
 func (cfg *testConfig) connect(i int) {
-	fmt.Printf("connect(%d)\n", i)
+	//fmt.Printf("connect(%d)\n", i)
 
 	cfg.connected[i] = true
 
