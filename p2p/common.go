@@ -11,12 +11,12 @@ func DPrintf(format string, a ...interface{}) {
 }
 
 type StatusArgs struct {
-	status bool
-	peer   int
+	Status bool
+	Peer   int
 }
 type HaveUpdateArgs struct {
-	chunk int
-	peer  int
+	Chunk int
+	Peer  int
 }
 
 type EmptyReply struct{}

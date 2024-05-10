@@ -15,7 +15,6 @@ type flag struct {
 }
 
 type PeerInfo struct {
-	Endpoint        *labrpc.ClientEnd
 	am_choking      bool
 	am_interested   bool
 	peer_choking    bool
@@ -41,101 +40,124 @@ func (P *Peer) HeartBeat(peer int) {
 	P.mu.Lock()
 	defer P.mu.Unlock()
 
-	pinfo := P.knownPeerInfo[peer]
-
-	endpoint := pinfo.Endpoint
-
 	args := EmptyArgs{}
 
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := endpoint.Call("Peer.ReceiveHeartbeat", &args, &reply)
+	ok := P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
 
 	for !ok {
-		ok = endpoint.Call("Peer.ReceiveHeartbeat", &args, &reply)
+		ok = P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
 	}
+}
+
+func (P *Peer) AddPeerFromRPCCall(peer int) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+	for _, p := range P.knownPeers {
+		if p == peer {
+			return
+		}
+	}
+	P.knownPeers = append(P.knownPeers, peer)
+	fmt.Print(P.knownPeers)
+	P.knownPeerInfo[peer] = PeerInfo{
+		am_choking:      true,
+		am_interested:   false,
+		peer_choking:    true,
+		peer_interested: false,
+	}
+
 }
 
 func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) {}
 
 func (P *Peer) ChangeChokeStatus(peer int, status bool) {
 	P.mu.Lock()
-	defer P.mu.Unlock()
 
 	pinfo := P.knownPeerInfo[peer]
 
-	P.knownPeerInfo[peer] = PeerInfo{Endpoint: pinfo.Endpoint,
+	P.knownPeerInfo[peer] = PeerInfo{
 		am_choking:      status,
 		am_interested:   pinfo.am_interested,
 		peer_choking:    pinfo.peer_choking,
 		peer_interested: pinfo.peer_interested}
 
-	endpoint := pinfo.Endpoint
-
-	args := StatusArgs{status: status,
-		peer: P.me}
+	args := StatusArgs{Status: status,
+		Peer: P.me}
 
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := endpoint.Call("Peer.ChokeStatus", &args, &reply)
+	ok := P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
 
 	for !ok {
-		ok = endpoint.Call("Peer.ChokeStatus", &args, &reply)
+		ok = P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
 	}
 }
 
 func (P *Peer) ChangeInterestStatus(peer int, status bool) {
 	P.mu.Lock()
-	defer P.mu.Unlock()
 
 	pinfo := P.knownPeerInfo[peer]
 
-	P.knownPeerInfo[peer] = PeerInfo{Endpoint: pinfo.Endpoint,
+	P.knownPeerInfo[peer] = PeerInfo{
 		am_choking:      pinfo.am_choking,
 		am_interested:   status,
 		peer_choking:    pinfo.peer_choking,
 		peer_interested: pinfo.peer_interested}
 
-	endpoint := pinfo.Endpoint
-
-	args := StatusArgs{status: status,
-		peer: P.me}
+	args := StatusArgs{Status: status,
+		Peer: P.me}
 
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := endpoint.Call("Peer.InterestStatus", &args, &reply)
+	ok := P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
 
 	for !ok {
-		ok = endpoint.Call("Peer.InterestStatus", &args, &reply)
+		ok = P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
 	}
+
+}
+
+func (P *Peer) InterestStatus(args *StatusArgs, reply *EmptyReply) {
+	P.AddPeerFromRPCCall(args.Peer)
+
+	P.mu.Lock()
+	pinfo := P.knownPeerInfo[args.Peer]
+	pinfo.peer_interested = args.Status
+	P.knownPeerInfo[args.Peer] = pinfo
+	P.mu.Unlock()
 }
 
 func (P *Peer) SendHaveUpdate(peer int, chunk int) {
 	P.mu.Lock()
-	defer P.mu.Unlock()
 
-	pinfo := P.knownPeerInfo[peer]
-
-	endpoint := pinfo.Endpoint
-
-	args := HaveUpdateArgs{chunk: chunk,
-		peer: P.me}
+	args := HaveUpdateArgs{Chunk: chunk,
+		Peer: P.me}
 
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := endpoint.Call("Peer.HaveUpdate", &args, &reply)
+	ok := P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
 
 	for !ok {
-		ok = endpoint.Call("Peer.HaveUpdate", &args, &reply)
+		ok = P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
 	}
 }
 
 func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) {
-
+	P.AddPeerFromRPCCall(args.Peer)
+	P.mu.Lock()
+	defer P.mu.Unlock()
+	if !P.ChunksOwned[args.Chunk] {
+		pinfo := P.knownPeerInfo[args.Peer]
+		pinfo.am_interested = true
+		P.knownPeerInfo[args.Peer] = pinfo
+		go P.ChangeInterestStatus(args.Peer, true)
+	}
 }
 
 func (P *Peer) GetMetaData() {
@@ -167,6 +189,9 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 			}
 			P.ChunksOwned[chunk] = true
 			// DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
+			for i := 0; i < len(P.knownPeers); i++ {
+				P.SendHaveUpdate(P.knownPeers[i], chunk)
+			}
 			return true
 		}
 	}
@@ -174,6 +199,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 }
 
 func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
+	P.AddPeerFromRPCCall(args.Me)
 	P.mu.Lock()
 	defer P.mu.Unlock()
 	if !P.chokeStatus(args.Me) && P.ChunksOwned[args.Chunk] {
@@ -268,7 +294,7 @@ func (P *Peer) ReloadPeers() {
 	P.knownPeerInfo = make(map[int]PeerInfo)
 	for i := 0; i < len(reply.Peers); i++ {
 		P.knownPeers = append(P.knownPeers, reply.Peers[i])
-		P.knownPeerInfo[reply.Peers[i]] = PeerInfo{Endpoint: P.allpeers[reply.Peers[i]],
+		P.knownPeerInfo[reply.Peers[i]] = PeerInfo{
 			am_choking:      true,
 			am_interested:   false,
 			peer_choking:    true,
@@ -289,23 +315,28 @@ func (P *Peer) ticker() {
 		randpeer := nrand() % len(P.knownPeers)
 
 		toRequest := P.GetChunksToRequest(P.knownPeers[randpeer])
-
-		for i := 0; i < len(toRequest); i++ {
-			P.GetChunk(randpeer, toRequest[i])
+		if len(toRequest) > 0 {
+			P.GetChunk(randpeer, toRequest[nrand()%len(toRequest)])
 		}
+
 		// time.Sleep(10 * time.Millisecond)
 	}
 }
 
 func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd) *Peer {
+
 	P := &Peer{}
+	P.mu.Lock()
 	P.Hashes = hashes
 	P.Tracker = tracker
 	P.allpeers = allPeers
+	P.knownPeerInfo = make(map[int]PeerInfo)
 	P.NChunks = len(hashes) / 32
 	P.DataOwned = make([]byte, P.NChunks*1024)
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = me
+	P.mu.Unlock()
+
 	go P.ticker()
 
 	return P
@@ -328,10 +359,13 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 
 // }
 
-func MakeSeedPeer(hashes []byte, data []byte) *Peer {
+func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd) *Peer {
 	P := &Peer{}
 	P.Hashes = hashes
 	P.DataOwned = data
+	P.allpeers = allPeers
+	P.knownPeerInfo = make(map[int]PeerInfo)
+
 	P.ChunksOwned = make([]bool, (len(data) / 1024))
 	P.me = 0
 	for i := 0; i < len(P.ChunksOwned); i++ {

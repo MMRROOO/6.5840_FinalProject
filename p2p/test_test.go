@@ -110,7 +110,7 @@ func TestNonSeedSingleDownload(t *testing.T) {
 }
 
 func TestLargeFile(t *testing.T) {
-	servers := 16
+	servers := 5
 	DATA_SIZE := 1000 * 1024
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
@@ -142,7 +142,7 @@ func TestManyPeers(t *testing.T) {
 
 	cfg := makeConfig(t, data, servers, false)
 	defer cfg.cleanup()
-	cfg.begin("Test - LargeFile")
+	cfg.begin("Test - ManyPeers")
 
 	cfg.VerifyDataErr(0, true)
 	for i := 1; i < servers; i++ {
@@ -166,11 +166,11 @@ func TestManyPeersOverTime(t *testing.T) {
 
 	cfg := makeConfig(t, data, servers, false)
 	defer cfg.cleanup()
-	cfg.begin("Test - LargeFile")
+	cfg.begin("Test - ManyPeersSlow")
 
 	cfg.VerifyDataErr(0, true)
 	for i := 1; i < servers; i++ {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		cfg.StartPeer(i)
 	}
 

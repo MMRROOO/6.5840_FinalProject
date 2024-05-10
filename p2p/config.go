@@ -110,7 +110,7 @@ func (cfg *testConfig) FileHashes() {
 func (cfg *testConfig) StartTracker(Data []byte) {
 
 	cfg.tracker = MakeTracker(Data)
-	P := MakeSeedPeer(cfg.hashes, cfg.data)
+	P := MakeSeedPeer(cfg.hashes, cfg.data, cfg.endpoints[0])
 
 	trackersvc := labrpc.MakeService(cfg.tracker)
 	srv := labrpc.MakeServer()
@@ -132,7 +132,6 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 	serverEnd := cfg.net.MakeEnd(endname)
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
-
 	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i])
 
 	cfg.peers[i] = P
