@@ -4,9 +4,11 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"math/big"
+	"sync"
 )
 
 type Tracker struct {
+	mu          sync.Mutex
 	Hashes      []byte
 	activePeers map[int]bool
 }
@@ -36,7 +38,9 @@ func FileHashes(file []byte) []byte {
 }
 
 func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
-	DPrintf("sending peers\n")
+	T.mu.Lock()
+	defer T.mu.Unlock()
+	// DPrintf("sending peers\n")
 	_, ok := T.activePeers[args.Me]
 	if !ok {
 		T.activePeers[args.Me] = true
@@ -47,9 +51,29 @@ func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
 	for peer := range T.activePeers {
 		peerList = append(peerList, peer)
 	}
-	for i := 0; i < NPEERS; i++ {
-		reply.Peers[i] = peerList[nrand()%len(T.activePeers)]
+	reply.Peers = GetUniqueSubslicePeers(peerList, NPEERS, args.Me)
+}
+
+func GetUniqueSubslicePeers(active []int, numpeers int, peer int) []int {
+	ret := make([]int, 0)
+	a := active
+	for i := 0; i < len(a); i++ {
+		if a[i] == peer {
+			a = append(a[:i], a[i+1:]...)
+			break
+		}
 	}
+
+	for i := 0; i < numpeers; i++ {
+		if len(ret) == len(active)-1 {
+			return ret
+		}
+		j := nrand() % len(a)
+		ret = append(ret, a[j])
+
+		a = append(a[:j], a[j+1:]...)
+	}
+	return ret
 }
 
 func MakeTracker(data []byte) *Tracker {

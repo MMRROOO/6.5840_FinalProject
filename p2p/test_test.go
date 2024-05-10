@@ -108,3 +108,88 @@ func TestNonSeedSingleDownload(t *testing.T) {
 	//cfg.VerifyDataErr(2, true)
 	cfg.end()
 }
+
+func TestLargeFile(t *testing.T) {
+	servers := 16
+	DATA_SIZE := 1000 * 1024
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, false)
+	defer cfg.cleanup()
+	cfg.begin("Test - LargeFile")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+
+func TestManyPeers(t *testing.T) {
+	servers := 100
+	DATA_SIZE := 4 * 1024
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, false)
+	defer cfg.cleanup()
+	cfg.begin("Test - LargeFile")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+func TestManyPeersOverTime(t *testing.T) {
+	servers := 100
+	DATA_SIZE := 10 * 1024
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, false)
+	defer cfg.cleanup()
+	cfg.begin("Test - LargeFile")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		time.Sleep(10 * time.Millisecond)
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+
+func VerifyAll(numServers int, cfg *testConfig) bool {
+	for i := 1; i < numServers; i++ {
+		owned, matched := cfg.VerifyData(i)
+		if !owned || !(matched) {
+			return false
+		}
+	}
+	return true
+}

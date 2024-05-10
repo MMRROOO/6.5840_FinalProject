@@ -146,6 +146,31 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 	return P
 }
 
+func (cfg *testConfig) replacePeer(i int) *Peer {
+	endname := randstring(20)
+	cfg.disconnect(i)
+
+	serverEnd := cfg.net.MakeEnd(endname)
+	cfg.net.Connect(endname, TRACKERID)
+	cfg.net.Enable(endname, true)
+
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i])
+
+	for _, p := range cfg.peers {
+		for index, peer := range p.knownPeers {
+			if peer == i {
+				p.knownPeers = append(p.knownPeers[:index], p.knownPeers[index+1:]...)
+			}
+		}
+	}
+
+	cfg.peers[i] = P
+
+	cfg.disconnect((i))
+	return P
+
+}
+
 // Outputs first whether data is owned completely, secondly whether it matches
 func (cfg *testConfig) VerifyData(i int) (bool, bool) {
 	peer := cfg.peers[i]

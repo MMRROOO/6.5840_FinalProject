@@ -10,6 +10,19 @@ func DPrintf(format string, a ...interface{}) {
 	}
 }
 
+type StatusArgs struct {
+	status bool
+	peer   int
+}
+type HaveUpdateArgs struct {
+	chunk int
+	peer  int
+}
+
+type EmptyReply struct{}
+
+type EmptyArgs struct{}
+
 type MetaDataArgs struct {
 }
 

@@ -2,9 +2,9 @@ package p2p
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"torrent/labrpc"
 )
@@ -14,18 +14,128 @@ type flag struct {
 	flag bool
 }
 
+type PeerInfo struct {
+	Endpoint        *labrpc.ClientEnd
+	am_choking      bool
+	am_interested   bool
+	peer_choking    bool
+	peer_interested bool
+}
+
 type Peer struct {
-	mu          sync.Mutex
-	DataOwned   []byte
-	ChunksOwned []bool
-	Hashes      []byte
-	NChunks     int
-	allpeers    []*labrpc.ClientEnd
-	knownPeers  []int
-	Tracker     *labrpc.ClientEnd
-	choked      []flag //indicate which peers don't recieve upload chunks
-	me          int
-	dead        int32
+	mu            sync.Mutex
+	DataOwned     []byte
+	ChunksOwned   []bool
+	Hashes        []byte
+	NChunks       int
+	allpeers      []*labrpc.ClientEnd
+	knownPeerInfo map[int]PeerInfo
+	knownPeers    []int
+	Tracker       *labrpc.ClientEnd
+	choked        []flag //indicate which peers don't recieve upload chunks
+	me            int
+	dead          int32
+}
+
+func (P *Peer) HeartBeat(peer int) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+
+	pinfo := P.knownPeerInfo[peer]
+
+	endpoint := pinfo.Endpoint
+
+	args := EmptyArgs{}
+
+	reply := EmptyReply{}
+
+	P.mu.Unlock()
+	ok := endpoint.Call("Peer.ReceiveHeartbeat", &args, &reply)
+
+	for !ok {
+		ok = endpoint.Call("Peer.ReceiveHeartbeat", &args, &reply)
+	}
+}
+
+func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) {}
+
+func (P *Peer) ChangeChokeStatus(peer int, status bool) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+
+	pinfo := P.knownPeerInfo[peer]
+
+	P.knownPeerInfo[peer] = PeerInfo{Endpoint: pinfo.Endpoint,
+		am_choking:      status,
+		am_interested:   pinfo.am_interested,
+		peer_choking:    pinfo.peer_choking,
+		peer_interested: pinfo.peer_interested}
+
+	endpoint := pinfo.Endpoint
+
+	args := StatusArgs{status: status,
+		peer: P.me}
+
+	reply := EmptyReply{}
+
+	P.mu.Unlock()
+	ok := endpoint.Call("Peer.ChokeStatus", &args, &reply)
+
+	for !ok {
+		ok = endpoint.Call("Peer.ChokeStatus", &args, &reply)
+	}
+}
+
+func (P *Peer) ChangeInterestStatus(peer int, status bool) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+
+	pinfo := P.knownPeerInfo[peer]
+
+	P.knownPeerInfo[peer] = PeerInfo{Endpoint: pinfo.Endpoint,
+		am_choking:      pinfo.am_choking,
+		am_interested:   status,
+		peer_choking:    pinfo.peer_choking,
+		peer_interested: pinfo.peer_interested}
+
+	endpoint := pinfo.Endpoint
+
+	args := StatusArgs{status: status,
+		peer: P.me}
+
+	reply := EmptyReply{}
+
+	P.mu.Unlock()
+	ok := endpoint.Call("Peer.InterestStatus", &args, &reply)
+
+	for !ok {
+		ok = endpoint.Call("Peer.InterestStatus", &args, &reply)
+	}
+}
+
+func (P *Peer) SendHaveUpdate(peer int, chunk int) {
+	P.mu.Lock()
+	defer P.mu.Unlock()
+
+	pinfo := P.knownPeerInfo[peer]
+
+	endpoint := pinfo.Endpoint
+
+	args := HaveUpdateArgs{chunk: chunk,
+		peer: P.me}
+
+	reply := EmptyReply{}
+
+	P.mu.Unlock()
+	ok := endpoint.Call("Peer.HaveUpdate", &args, &reply)
+
+	for !ok {
+		ok = endpoint.Call("Peer.HaveUpdate", &args, &reply)
+	}
+}
+
+func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) {
+
 }
 
 func (P *Peer) GetMetaData() {
@@ -56,7 +166,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 				P.DataOwned[chunk*1024+i] = reply.Data[i]
 			}
 			P.ChunksOwned[chunk] = true
-			DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
+			// DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
 			return true
 		}
 	}
@@ -107,11 +217,13 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 
 		return ChunksToRequest
 	}
+
 	return make([]int, 0)
 }
 
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
 	reply.ChunksOwned = P.ChunksOwned
+
 }
 
 // Will set choked for all peers to chokeFlag
@@ -143,16 +255,45 @@ func (pr *Peer) killed() bool {
 	return z == 1
 }
 
-func (P *Peer) ticker(peer int) {
-	DPrintf("in ticker\n")
+func (P *Peer) ReloadPeers() {
+	args := SendPeerArgs{P.me}
+	reply := SendPeerReply{}
+	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+	if !ok {
+		fmt.Printf("sent not work")
+	}
+
+	P.mu.Lock()
+	P.knownPeers = make([]int, 0)
+	P.knownPeerInfo = make(map[int]PeerInfo)
+	for i := 0; i < len(reply.Peers); i++ {
+		P.knownPeers = append(P.knownPeers, reply.Peers[i])
+		P.knownPeerInfo[reply.Peers[i]] = PeerInfo{Endpoint: P.allpeers[reply.Peers[i]],
+			am_choking:      true,
+			am_interested:   false,
+			peer_choking:    true,
+			peer_interested: false,
+		}
+	}
+
+	P.mu.Unlock()
+}
+
+func (P *Peer) ticker() {
+	// DPrintf("in ticker\n")
+
+	P.ReloadPeers()
 
 	for P.killed() == false {
 
-		toRequest := P.GetChunksToRequest(peer)
+		randpeer := nrand() % len(P.knownPeers)
+
+		toRequest := P.GetChunksToRequest(P.knownPeers[randpeer])
+
 		for i := 0; i < len(toRequest); i++ {
-			P.GetChunk(peer, toRequest[i])
+			P.GetChunk(randpeer, toRequest[i])
 		}
-		time.Sleep(10 * time.Millisecond)
+		// time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -163,32 +304,29 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.allpeers = allPeers
 	P.NChunks = len(hashes) / 32
 	P.DataOwned = make([]byte, P.NChunks*1024)
-	args := SendChunksOwnedArgs{}
-	reply := SendChunksOwnedReply{}
-	allPeers[0].Call("Peer.Print", &args, &reply)
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = me
-	go P.jump()
+	go P.ticker()
 
 	return P
 }
 
-func (P *Peer) jump() {
-	args := SendPeerArgs{P.me}
-	reply := SendPeerReply{}
-	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
-	if !ok {
-		DPrintf("sent not work")
-	}
-	for i := 0; i < len(reply.Peers); i++ {
-		P.knownPeers = append(P.knownPeers, reply.Peers[i])
-	}
-	DPrintf("Peer %v recieved peers: %v", P.me, P.knownPeers)
-	for i := 0; i < len(P.knownPeers); i++ {
-		go P.ticker(P.knownPeers[i])
-	}
+// func (P *Peer) jump() {
+// 	args := SendPeerArgs{P.me}
+// 	reply := SendPeerReply{}
+// 	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+// 	if !ok {
+// 		DPrintf("sent not work")
+// 	}
+// 	for i := 0; i < len(reply.Peers); i++ {
+// 		P.knownPeers = append(P.knownPeers, reply.Peers[i])
+// 	}
+// 	DPrintf("Peer %v recieved peers: %v", P.me, P.knownPeers)
+// 	for i := 0; i < len(P.knownPeers); i++ {
+// 		go P.ticker(P.knownPeers[i])
+// 	}
 
-}
+// }
 
 func MakeSeedPeer(hashes []byte, data []byte) *Peer {
 	P := &Peer{}
