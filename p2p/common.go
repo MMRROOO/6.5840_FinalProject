@@ -42,6 +42,7 @@ type SendChunkReply struct {
 }
 
 type SendChunksOwnedArgs struct {
+	Me int
 }
 
 type SendChunksOwnedReply struct {

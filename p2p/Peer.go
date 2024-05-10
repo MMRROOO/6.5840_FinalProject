@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"torrent/labrpc"
 )
@@ -69,6 +70,10 @@ func (P *Peer) AddPeerFromRPCCall(peer int) {
 		peer_interested: false,
 	}
 
+	fmt.Printf("NEWPEERADDED: %d, me: %d\n", peer, P.me)
+
+	go P.ticker(peer)
+
 }
 
 func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) {}
@@ -95,6 +100,16 @@ func (P *Peer) ChangeChokeStatus(peer int, status bool) {
 	for !ok {
 		ok = P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
 	}
+}
+
+func (P *Peer) ChokeStatus(args *StatusArgs, reply *EmptyReply) {
+	P.AddPeerFromRPCCall(args.Peer)
+
+	P.mu.Lock()
+	pinfo := P.knownPeerInfo[args.Peer]
+	pinfo.peer_choking = args.Status
+	P.knownPeerInfo[args.Peer] = pinfo
+	P.mu.Unlock()
 }
 
 func (P *Peer) ChangeInterestStatus(peer int, status bool) {
@@ -228,7 +243,7 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 }
 
 func (P *Peer) GetChunksToRequest(peer int) []int {
-	args := SendChunksOwnedArgs{}
+	args := SendChunksOwnedArgs{Me: P.me}
 	reply := SendChunksOwnedReply{}
 
 	ok := P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
@@ -248,6 +263,8 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 }
 
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
+	P.AddPeerFromRPCCall(args.Me)
+
 	reply.ChunksOwned = P.ChunksOwned
 
 }
@@ -305,21 +322,51 @@ func (P *Peer) ReloadPeers() {
 	P.mu.Unlock()
 }
 
-func (P *Peer) ticker() {
+func (P *Peer) Starttickers() {
 	// DPrintf("in ticker\n")
 
 	P.ReloadPeers()
+	// for len(P.knownPeers) == 0 {
+	// 	P.ReloadPeers()
+	// }
 
+	for p := range P.knownPeers {
+		go P.ticker(p)
+	}
+
+}
+
+func (P *Peer) ticker(peer int) {
 	for P.killed() == false {
+		P.mu.Lock()
+		if P.knownPeerInfo[peer].peer_interested || nrand()%10 == 0 {
+			// fmt.Printf("me: %d, peer: %d\n", P.me, peer)
+			P.mu.Unlock()
 
-		randpeer := nrand() % len(P.knownPeers)
-
-		toRequest := P.GetChunksToRequest(P.knownPeers[randpeer])
-		if len(toRequest) > 0 {
-			P.GetChunk(randpeer, toRequest[nrand()%len(toRequest)])
+			P.ChangeChokeStatus(peer, false)
+			P.mu.Lock()
 		}
 
-		// time.Sleep(10 * time.Millisecond)
+		P.mu.Unlock()
+		toRequest := P.GetChunksToRequest(peer)
+		if len(toRequest) != 0 {
+			P.ChangeInterestStatus(peer, true)
+		}
+		P.mu.Lock()
+		// fmt.Print(!P.knownPeerInfo[peer].peer_choking, P.knownPeerInfo[peer].am_interested, P.me, peer, P.ChunksOwned, "here\n")
+
+		if !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested {
+			P.mu.Unlock()
+
+			if len(toRequest) > 0 {
+
+				P.GetChunk(peer, toRequest[nrand()%len(toRequest)])
+			}
+			P.mu.Lock()
+		}
+		P.mu.Unlock()
+
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -337,7 +384,7 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.me = me
 	P.mu.Unlock()
 
-	go P.ticker()
+	go P.Starttickers()
 
 	return P
 }
@@ -359,17 +406,36 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 
 // }
 
-func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd) *Peer {
+func (P *Peer) randomUnchoke() {
+	for P.killed() == false {
+
+		if len(P.knownPeers) > 0 {
+			P.mu.Lock()
+			randPeer := nrand() % len(P.knownPeers)
+			P.mu.Unlock()
+
+			P.ChangeChokeStatus(P.knownPeers[randPeer], false)
+		}
+		// time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd, tracker *labrpc.ClientEnd) *Peer {
 	P := &Peer{}
+	P.mu.Lock()
 	P.Hashes = hashes
-	P.DataOwned = data
+	P.Tracker = tracker
 	P.allpeers = allPeers
 	P.knownPeerInfo = make(map[int]PeerInfo)
-
-	P.ChunksOwned = make([]bool, (len(data) / 1024))
+	P.NChunks = len(hashes) / 32
+	P.DataOwned = data
+	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = 0
 	for i := 0; i < len(P.ChunksOwned); i++ {
 		P.ChunksOwned[i] = true
 	}
+	P.mu.Unlock()
+
+	go P.Starttickers()
 	return P
 }
