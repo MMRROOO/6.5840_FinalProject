@@ -45,6 +45,7 @@ type testConfig struct {
 	connected []bool // whether each peer is on the net
 	n         int
 	finished  int32
+	ChunkSize int
 
 	start time.Time
 	t0    time.Time
@@ -52,7 +53,7 @@ type testConfig struct {
 
 var ncpu_once sync.Once
 
-func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
+func makeConfig(t *testing.T, data []byte, n int, unreliable bool, CSize int) *testConfig {
 	ncpu_once.Do(func() {
 		if runtime.NumCPU() < 2 {
 			fmt.Printf("warning: only one CPU, which may conceal locking bugs\n")
@@ -71,6 +72,7 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 	cfg.data = make([]byte, len(data))
 	cfg.connected = make([]bool, cfg.n)
 	cfg.connected[0] = true
+	cfg.ChunkSize = CSize
 	for i, filebyte := range data {
 		cfg.data[i] = filebyte
 	}
@@ -97,9 +99,9 @@ func makeConfig(t *testing.T, data []byte, n int, unreliable bool) *testConfig {
 }
 
 func (cfg *testConfig) FileHashes() {
-	hashes := make([]byte, (len(cfg.data)/1024)*32)
-	for chunk := 0; chunk < len(cfg.data)/1024; chunk++ {
-		H := sha256.Sum256(cfg.data[chunk*1024 : chunk*1024+1024])
+	hashes := make([]byte, (len(cfg.data)/cfg.ChunkSize)*32)
+	for chunk := 0; chunk < len(cfg.data)/cfg.ChunkSize; chunk++ {
+		H := sha256.Sum256(cfg.data[chunk*cfg.ChunkSize : chunk*cfg.ChunkSize+cfg.ChunkSize])
 		for i := 0; i < 32; i++ {
 			hashes[chunk*32+i] = H[i]
 		}
@@ -137,7 +139,7 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 	serverEnd := cfg.net.MakeEnd(endname)
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
-	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i])
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize)
 
 	cfg.peers[i] = P
 
@@ -158,7 +160,7 @@ func (cfg *testConfig) replacePeer(i int) *Peer {
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
 
-	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i])
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize)
 
 	for _, p := range cfg.peers {
 		for index, peer := range p.knownPeers {
@@ -180,7 +182,7 @@ func (cfg *testConfig) VerifyData(i int) (bool, bool) {
 	peer := cfg.peers[i]
 
 	// num chunks = num_bytes/1024 rounded up
-	for i := 0; i < (len(cfg.data) / 1024); i++ {
+	for i := 0; i < (len(cfg.data) / cfg.ChunkSize); i++ {
 		if !peer.ChunksOwned[i] {
 			return false, false
 		}

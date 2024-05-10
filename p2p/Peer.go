@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,6 +34,7 @@ type Peer struct {
 	choked        []flag //indicate which peers don't recieve upload chunks
 	me            int
 	dead          int32
+	ChunkSize     int
 }
 
 func (P *Peer) HeartBeat(peer int) {
@@ -48,7 +48,7 @@ func (P *Peer) HeartBeat(peer int) {
 	P.mu.Unlock()
 	ok := P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
 
-	for !ok {
+	for !ok && P.killed() == false {
 		ok = P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
 	}
 }
@@ -97,7 +97,7 @@ func (P *Peer) ChangeChokeStatus(peer int, status bool) {
 	P.mu.Unlock()
 	ok := P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
 
-	for !ok {
+	for !ok && P.killed() == false {
 		ok = P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
 	}
 }
@@ -131,7 +131,7 @@ func (P *Peer) ChangeInterestStatus(peer int, status bool) {
 	P.mu.Unlock()
 	ok := P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
 
-	for !ok {
+	for !ok && P.killed() == false {
 		ok = P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
 	}
 
@@ -158,7 +158,7 @@ func (P *Peer) SendHaveUpdate(peer int, chunk int) {
 	P.mu.Unlock()
 	ok := P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
 
-	for !ok {
+	for !ok && P.killed() == false {
 		ok = P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
 	}
 }
@@ -186,7 +186,7 @@ func (P *Peer) GetMetaData() {
 	}
 
 	P.Hashes = reply.Hashes
-	P.DataOwned = make([]byte, ((len(P.Hashes) / 32) * 1024))
+	P.DataOwned = make([]byte, ((len(P.Hashes) / 32) * P.ChunkSize))
 }
 
 func (P *Peer) GetChunk(peer int, chunk int) bool {
@@ -199,8 +199,8 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 
 		if P.CheckHash(reply.Data, chunk) {
 
-			for i := 0; i < 1024; i++ {
-				P.DataOwned[chunk*1024+i] = reply.Data[i]
+			for i := 0; i < P.ChunkSize; i++ {
+				P.DataOwned[chunk*P.ChunkSize+i] = reply.Data[i]
 			}
 			P.ChunksOwned[chunk] = true
 			// DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
@@ -218,9 +218,9 @@ func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
 	P.mu.Lock()
 	defer P.mu.Unlock()
 	if !P.chokeStatus(args.Me) && P.ChunksOwned[args.Chunk] {
-		reply.Data = make([]byte, 1024)
-		for i := 0; i < 1024; i++ {
-			reply.Data[i] = P.DataOwned[args.Chunk*1024+i]
+		reply.Data = make([]byte, P.ChunkSize)
+		for i := 0; i < P.ChunkSize; i++ {
+			reply.Data[i] = P.DataOwned[args.Chunk*P.ChunkSize+i]
 		}
 
 		reply.Valid = true
@@ -230,7 +230,7 @@ func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
 }
 
 func (P *Peer) CheckHash(Data []byte, chunk int) bool {
-	if len(Data) != 1024 {
+	if len(Data) != P.ChunkSize {
 		return false
 	}
 	newHash := sha256.Sum256(Data)
@@ -304,8 +304,8 @@ func (P *Peer) ReloadPeers() {
 	args := SendPeerArgs{P.me}
 	reply := SendPeerReply{}
 	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
-	if !ok {
-		fmt.Printf("sent not work")
+	for !ok && P.killed() == false {
+		ok = P.Tracker.Call("Tracker.SendPeers", &args, &reply)
 	}
 
 	P.mu.Lock()
@@ -357,7 +357,7 @@ func (P *Peer) ticker(peer int) {
 		P.mu.Lock()
 		// fmt.Print(!P.knownPeerInfo[peer].peer_choking, P.knownPeerInfo[peer].am_interested, P.me, peer, P.ChunksOwned, "here\n")
 
-		for len(toRequest) > 0 && !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested {
+		for len(toRequest) > 0 && !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested && P.killed() == false {
 			idx := nrand() % len(toRequest)
 			chunk := toRequest[idx]
 			toRequest = append(toRequest[:idx], toRequest[idx+1:]...)
@@ -373,7 +373,7 @@ func (P *Peer) ticker(peer int) {
 	}
 }
 
-func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd) *Peer {
+func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd, CSize int) *Peer {
 
 	P := &Peer{}
 	P.mu.Lock()
@@ -382,7 +382,8 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.allpeers = allPeers
 	P.knownPeerInfo = make(map[int]PeerInfo)
 	P.NChunks = len(hashes) / 32
-	P.DataOwned = make([]byte, P.NChunks*1024)
+	P.ChunkSize = CSize
+	P.DataOwned = make([]byte, P.NChunks*P.ChunkSize)
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = me
 	P.mu.Unlock()
@@ -432,6 +433,7 @@ func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd, trac
 	P.knownPeerInfo = make(map[int]PeerInfo)
 	P.NChunks = len(hashes) / 32
 	P.DataOwned = data
+	P.ChunkSize = len(data) / P.NChunks
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = 0
 	for i := 0; i < len(P.ChunksOwned); i++ {

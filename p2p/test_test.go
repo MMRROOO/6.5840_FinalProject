@@ -6,14 +6,16 @@ import (
 	"time"
 )
 
+var CHUNKSIZE = 1024
+
 func TestTracker(t *testing.T) {
 	servers := 1
-	DATA_SIZE := 4 * 1024
+	DATA_SIZE := 4 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	for i := 0; i < DATA_SIZE; i++ {
 		data[i] = byte(i)
 	}
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - Tracker")
 	for i, ownership := range cfg.peers[0].ChunksOwned {
@@ -33,11 +35,11 @@ func TestTracker(t *testing.T) {
 
 func TestSinglePeerDownload(t *testing.T) {
 	servers := 2
-	DATA_SIZE := 4000 * 1024
+	DATA_SIZE := 4000 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - SinglePeerDownload")
 
@@ -57,11 +59,11 @@ func TestSinglePeerDownload(t *testing.T) {
 
 func TestMultiPeerDownload(t *testing.T) {
 	servers := 10
-	DATA_SIZE := 4000 * 1024
+	DATA_SIZE := 4000 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - MultiPeerDownload")
 
@@ -79,11 +81,11 @@ func TestMultiPeerDownload(t *testing.T) {
 
 func TestNonSeedSingleDownload(t *testing.T) {
 	servers := 3
-	DATA_SIZE := 4000 * 1024
+	DATA_SIZE := 4000 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - NonSeedSingleDownload")
 
@@ -111,37 +113,13 @@ func TestNonSeedSingleDownload(t *testing.T) {
 
 func TestLargeFile(t *testing.T) {
 	servers := 5
-	DATA_SIZE := 100 * 1000 * 1024
+	DATA_SIZE := 100 * 1000 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - LargeFile")
-
-	cfg.VerifyDataErr(0, true)
-	for i := 1; i < servers; i++ {
-		cfg.StartPeer(i)
-	}
-
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
-
-	//cfg.VerifyDataErr(2, true)
-	cfg.end()
-}
-func TestHugeFile(t *testing.T) {
-	servers := 5
-	DATA_SIZE := 1000 * 1000 * 1024
-	data := make([]byte, DATA_SIZE)
-	rand.Read(data)
-
-	cfg := makeConfig(t, data, servers, false)
-	defer cfg.cleanup()
-	cfg.begin("Test - HugeFile")
 
 	cfg.VerifyDataErr(0, true)
 	for i := 1; i < servers; i++ {
@@ -160,11 +138,11 @@ func TestHugeFile(t *testing.T) {
 
 func TestManyPeers(t *testing.T) {
 	servers := 100
-	DATA_SIZE := 4 * 1024
+	DATA_SIZE := 4 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - ManyPeers")
 
@@ -184,11 +162,11 @@ func TestManyPeers(t *testing.T) {
 }
 func TestManyPeersOverTime(t *testing.T) {
 	servers := 100
-	DATA_SIZE := 10 * 1024
+	DATA_SIZE := 10 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
-	cfg := makeConfig(t, data, servers, false)
+	cfg := makeConfig(t, data, servers, false, CHUNKSIZE)
 	defer cfg.cleanup()
 	cfg.begin("Test - ManyPeersSlow")
 
@@ -200,6 +178,85 @@ func TestManyPeersOverTime(t *testing.T) {
 
 	for !VerifyAll(servers, cfg) {
 		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+
+func TestSmallUnreliable(t *testing.T) {
+	servers := 5
+	DATA_SIZE := 10 * CHUNKSIZE
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, true, CHUNKSIZE)
+	defer cfg.cleanup()
+	cfg.begin("Test - SmallUnreliable")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		time.Sleep(50 * time.Millisecond)
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+
+func TestManyPeersUnreliable(t *testing.T) {
+	servers := 100
+	DATA_SIZE := 10 * CHUNKSIZE
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, true, CHUNKSIZE)
+	defer cfg.cleanup()
+	cfg.begin("Test - ManyPeersUnreliable")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		time.Sleep(10 * time.Millisecond)
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+
+func TestLargeFileUnreliable(t *testing.T) {
+	servers := 5
+
+	DATA_SIZE := 1000 * CHUNKSIZE
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, true, CHUNKSIZE)
+	defer cfg.cleanup()
+	cfg.begin("Test - LargerFileUnreliable")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		time.Sleep(10 * time.Millisecond)
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
