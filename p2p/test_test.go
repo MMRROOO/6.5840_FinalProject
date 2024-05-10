@@ -33,7 +33,7 @@ func TestTracker(t *testing.T) {
 
 func TestSinglePeerDownload(t *testing.T) {
 	servers := 2
-	DATA_SIZE := 4 * 1024
+	DATA_SIZE := 4000 * 1024
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
@@ -57,7 +57,7 @@ func TestSinglePeerDownload(t *testing.T) {
 
 func TestMultiPeerDownload(t *testing.T) {
 	servers := 10
-	DATA_SIZE := 4 * 1024
+	DATA_SIZE := 4000 * 1024
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
@@ -79,7 +79,7 @@ func TestMultiPeerDownload(t *testing.T) {
 
 func TestNonSeedSingleDownload(t *testing.T) {
 	servers := 3
-	DATA_SIZE := 4 * 1024
+	DATA_SIZE := 4000 * 1024
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
@@ -111,13 +111,37 @@ func TestNonSeedSingleDownload(t *testing.T) {
 
 func TestLargeFile(t *testing.T) {
 	servers := 5
-	DATA_SIZE := 1000 * 1024
+	DATA_SIZE := 100 * 1000 * 1024
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
 	cfg := makeConfig(t, data, servers, false)
 	defer cfg.cleanup()
 	cfg.begin("Test - LargeFile")
+
+	cfg.VerifyDataErr(0, true)
+	for i := 1; i < servers; i++ {
+		cfg.StartPeer(i)
+	}
+
+	for !VerifyAll(servers, cfg) {
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
+
+	//cfg.VerifyDataErr(2, true)
+	cfg.end()
+}
+func TestHugeFile(t *testing.T) {
+	servers := 5
+	DATA_SIZE := 1000 * 1000 * 1024
+	data := make([]byte, DATA_SIZE)
+	rand.Read(data)
+
+	cfg := makeConfig(t, data, servers, false)
+	defer cfg.cleanup()
+	cfg.begin("Test - HugeFile")
 
 	cfg.VerifyDataErr(0, true)
 	for i := 1; i < servers; i++ {

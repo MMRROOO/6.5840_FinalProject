@@ -16,8 +16,8 @@ type flag struct {
 }
 
 type PeerInfo struct {
-	am_choking      bool
-	am_interested   bool
+	am_choking      bool // I'm choking
+	am_interested   bool //
 	peer_choking    bool
 	peer_interested bool
 }
@@ -62,7 +62,7 @@ func (P *Peer) AddPeerFromRPCCall(peer int) {
 		}
 	}
 	P.knownPeers = append(P.knownPeers, peer)
-	fmt.Print(P.knownPeers)
+	DPrintf("%v", P.knownPeers)
 	P.knownPeerInfo[peer] = PeerInfo{
 		am_choking:      true,
 		am_interested:   false,
@@ -70,7 +70,7 @@ func (P *Peer) AddPeerFromRPCCall(peer int) {
 		peer_interested: false,
 	}
 
-	fmt.Printf("NEWPEERADDED: %d, me: %d\n", peer, P.me)
+	DPrintf("NEWPEERADDED: %d, me: %d\n", peer, P.me)
 
 	go P.ticker(peer)
 
@@ -242,6 +242,7 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 	return true
 }
 
+// Requests a list of chunks that peer has, returns those we don't own
 func (P *Peer) GetChunksToRequest(peer int) []int {
 	args := SendChunksOwnedArgs{Me: P.me}
 	reply := SendChunksOwnedReply{}
@@ -262,6 +263,7 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 	return make([]int, 0)
 }
 
+// RPC response that provides boolean list of file chunks owned
 func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
 	P.AddPeerFromRPCCall(args.Me)
 
@@ -355,14 +357,15 @@ func (P *Peer) ticker(peer int) {
 		P.mu.Lock()
 		// fmt.Print(!P.knownPeerInfo[peer].peer_choking, P.knownPeerInfo[peer].am_interested, P.me, peer, P.ChunksOwned, "here\n")
 
-		if !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested {
-			P.mu.Unlock()
-
-			if len(toRequest) > 0 {
-
-				P.GetChunk(peer, toRequest[nrand()%len(toRequest)])
+		for len(toRequest) > 0 && !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested {
+			idx := nrand() % len(toRequest)
+			chunk := toRequest[idx]
+			toRequest = append(toRequest[:idx], toRequest[idx+1:]...)
+			if !P.ChunksOwned[chunk] {
+				P.mu.Unlock()
+				P.GetChunk(peer, chunk)
+				P.mu.Lock()
 			}
-			P.mu.Lock()
 		}
 		P.mu.Unlock()
 

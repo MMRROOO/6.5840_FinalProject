@@ -2,7 +2,7 @@ package p2p
 
 import "fmt"
 
-const Debug bool = true
+const Debug bool = false
 
 func DPrintf(format string, a ...interface{}) {
 	if Debug {
