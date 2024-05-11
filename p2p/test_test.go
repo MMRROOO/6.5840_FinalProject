@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var CHUNKSIZE = 1024
+var CHUNKSIZE = 1024 // kb
 
 func TestTracker(t *testing.T) {
 	servers := 1

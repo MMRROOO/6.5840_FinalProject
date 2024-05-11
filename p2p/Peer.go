@@ -16,6 +16,7 @@ type flag struct {
 
 type PeerInfo struct {
 	toRequest       []int
+	rareRequests    []int
 	am_choking      bool // I'm choking
 	am_interested   bool //
 	peer_choking    bool
@@ -175,6 +176,11 @@ func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) {
 		pinfo.am_interested = true
 		pinfo.toRequest = append(pinfo.toRequest, args.Chunk)
 		P.knownPeerInfo[args.Peer] = pinfo
+		// rarity calc
+		rarity := P.incrRarity(args.Chunk, args.Peer)
+		if rarity == 1 {
+			pinfo.rareRequests = append(pinfo.rareRequests, args.Chunk)
+		}
 
 		go P.ChangeInterestStatus(args.Peer, true)
 
@@ -209,6 +215,10 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 			for i := 0; i < P.ChunkSize; i++ {
 				P.DataOwned[chunk*P.ChunkSize+i] = reply.Data[i]
 			}
+			P.mu.Lock()
+			delete(P.rarest, chunk)
+			delete(P.not_rarest, chunk)
+			P.mu.Unlock()
 			P.ChunksOwned[chunk] = true
 			// DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
 			for i := 0; i < len(P.knownPeers); i++ {
@@ -218,6 +228,38 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 		}
 	}
 	return false
+}
+
+func (P *Peer) getRarity(chunk int) int {
+	if P.ChunksOwned[chunk] {
+		return -1
+	}
+	_, ok := P.not_rarest[chunk]
+	if ok {
+		return 2
+	}
+	_, ok = P.rarest[chunk]
+	if ok {
+		return 1
+	}
+	return 0
+}
+
+func (P *Peer) incrRarity(chunk int, peer int) int {
+	rarity := P.getRarity(chunk)
+	if rarity == -1 || rarity == 2 {
+		return rarity
+	}
+	if rarity == 1 {
+		delete(P.rarest, chunk)
+		P.not_rarest[chunk] = true
+		return 2
+	}
+	if rarity == 0 {
+		P.rarest[chunk] = peer
+		return 1
+	}
+	return rarity
 }
 
 func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
@@ -250,7 +292,7 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 }
 
 // Requests a list of chunks that peer has, returns those we don't own
-func (P *Peer) GetChunksToRequest(peer int) []int {
+func (P *Peer) GetChunksToRequest(peer int) ([]int, []int) {
 	args := SendChunksOwnedArgs{Me: P.me}
 	reply := SendChunksOwnedReply{}
 
@@ -259,15 +301,20 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 		ok = P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
 	}
 	ChunksToRequest := make([]int, 0)
-
+	RareChunks := make([]int, 0)
+	P.mu.Lock()
 	for i := 0; i < P.NChunks; i++ {
 		if reply.ChunksOwned[i] && (!P.ChunksOwned[i]) {
 			ChunksToRequest = append(ChunksToRequest, i)
-			P.
+			rarity := P.incrRarity(i, peer)
+			if rarity == 1 {
+				RareChunks = append(RareChunks, i)
+			}
 		}
 	}
+	P.mu.Unlock()
 
-	return ChunksToRequest
+	return ChunksToRequest, RareChunks
 
 }
 
@@ -308,10 +355,10 @@ func (pr *Peer) killed() bool {
 	return z == 1
 }
 
-// returns 
+// returns
 func (P *Peer) addRarity(chunk int, peer int) {
 	if P.ChunksOwned[chunk] {
-		return 
+		return
 	}
 	_, ok := P.rarest[chunk]
 	if ok {
@@ -362,11 +409,12 @@ func (P *Peer) Starttickers() {
 }
 
 func (P *Peer) ticker(peer int) {
-	toRequest := P.GetChunksToRequest(peer)
+	toRequest, rareChunks := P.GetChunksToRequest(peer)
 	P.mu.Lock()
 	pinfo := P.knownPeerInfo[peer]
 
 	pinfo.toRequest = toRequest
+	pinfo.rareRequests = rareChunks
 	P.knownPeerInfo[peer] = pinfo
 
 	P.mu.Unlock()
@@ -393,7 +441,23 @@ func (P *Peer) ticker(peer int) {
 		for len(toRequest) > 0 && !P.knownPeerInfo[peer].peer_choking && P.knownPeerInfo[peer].am_interested && P.killed() == false {
 			idx := nrand() % len(toRequest)
 			chunk := toRequest[idx]
-			toRequest = append(toRequest[:idx], toRequest[idx+1:]...)
+			rarest := false
+			if len(pinfo.rareRequests) > 0 {
+				for i := len(pinfo.rareRequests) - 1; i >= 0; i-- {
+					rarity := P.getRarity(i)
+					if rarity >= 1 {
+						pinfo.rareRequests = pinfo.rareRequests[:i]
+					}
+					if rarity == 1 {
+						chunk = i
+						rarest = true
+						break
+					}
+				}
+			}
+			if !rarest {
+				toRequest = append(toRequest[:idx], toRequest[idx+1:]...)
+			}
 			// fmt.Print(P.knownPeerInfo[peer].toRequest)
 
 			// fmt.Print("\n")
@@ -479,6 +543,8 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.me = me
 	P.Seeding = Seeding
 	P.start = time.Now()
+	P.rarest = make(map[int]int, 0)
+	P.not_rarest = make(map[int]bool, 0)
 	P.mu.Unlock()
 
 	go P.Starttickers()
@@ -531,6 +597,8 @@ func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd, trac
 	P.me = 0
 	P.Seeding = true
 	P.start = time.Now()
+	P.rarest = make(map[int]int, 0)
+	P.not_rarest = make(map[int]bool, 0)
 	for i := 0; i < len(P.ChunksOwned); i++ {
 		P.ChunksOwned[i] = true
 	}
