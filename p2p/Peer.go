@@ -37,6 +37,7 @@ type Peer struct {
 	dead          int32
 	ChunkSize     int
 	Seeding       bool
+	start         time.Time
 }
 
 func (P *Peer) HeartBeat(peer int) {
@@ -460,6 +461,7 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = me
 	P.Seeding = Seeding
+	P.start = time.Now()
 	P.mu.Unlock()
 
 	go P.Starttickers()
@@ -511,6 +513,7 @@ func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd, trac
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
 	P.me = 0
 	P.Seeding = true
+	P.start = time.Now()
 	for i := 0; i < len(P.ChunksOwned); i++ {
 		P.ChunksOwned[i] = true
 	}

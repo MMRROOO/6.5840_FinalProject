@@ -47,8 +47,9 @@ type testConfig struct {
 	finished  int32
 	ChunkSize int
 
-	start time.Time
-	t0    time.Time
+	start    time.Time
+	t0       time.Time
+	avg_time int64 //milliseconds
 }
 
 var ncpu_once sync.Once
@@ -210,33 +211,40 @@ func (cfg *testConfig) VerifyDataErr(i int, raiseErr bool) (bool, bool) {
 }
 
 func (cfg *testConfig) MultiVerify(peerList []int) {
-	replies := make(chan bool, cfg.n)
-	waitVerify := func(i int, replChan chan bool) {
+	replies := make(chan int64, cfg.n)
+	waitVerify := func(i int, replChan chan int64) {
 		owned, matched := cfg.VerifyData(i)
 		for !owned {
 			time.Sleep(20 * time.Millisecond)
 			owned, matched = cfg.VerifyData(i)
 		}
-		DPrintf("peer %v has matched: %v", i, matched)
-		replChan <- matched
+		dur := time.Since(cfg.peers[i].start).Milliseconds()
+		if !matched {
+			dur = -1
+		}
+		DPrintf("peer %v has matched: %v in %v ms", i, matched, dur)
+		replChan <- dur
 	}
 	for _, peerID := range peerList {
 		go waitVerify(peerID, replies)
 	}
 	repliesLeft := len(peerList) //not checking seed peer
+	var totalTime int64 = 0
 	for repliesLeft > 0 {
 		select {
 		case matched := <-replies:
-			if !matched {
+			if matched == -1 {
 				cfg.t.Fatal("Peer did not copy data correctly")
 			} else {
 				repliesLeft = repliesLeft - 1
+				totalTime = totalTime + matched
 			}
 		default:
 			cfg.checkTimeout()
 			time.Sleep(20 * time.Millisecond)
 		}
 	}
+	cfg.avg_time = totalTime / int64(cfg.n)
 }
 
 func (cfg *testConfig) disconnect(i int) {
@@ -322,6 +330,6 @@ func (cfg *testConfig) end() {
 		npeers := cfg.n                   // number of peers
 
 		fmt.Printf("  ... Passed --")
-		fmt.Printf("  %4.1f  %d\n", t, npeers)
+		fmt.Printf("  %4.1f  %d %dms\n", t, npeers, cfg.avg_time)
 	}
 }

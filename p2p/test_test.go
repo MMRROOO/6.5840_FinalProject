@@ -149,10 +149,14 @@ func TestLargeFile(t *testing.T) {
 	for i := 1; i < servers; i++ {
 		cfg.StartPeer(i, true)
 	}
-
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(50 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
+	// for !VerifyAll(servers, cfg) {
+	// 	time.Sleep(50 * time.Millisecond)
+	// }
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -174,10 +178,14 @@ func TestManyPeers(t *testing.T) {
 	for i := 1; i < servers; i++ {
 		cfg.StartPeer(i, true)
 	}
-
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(50 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
+	// for !VerifyAll(servers, cfg) {
+	// 	time.Sleep(50 * time.Millisecond)
+	// }
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -200,9 +208,11 @@ func TestManyPeersOverTime(t *testing.T) {
 		cfg.StartPeer(i, true)
 	}
 
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(50 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -226,9 +236,11 @@ func TestSmallUnreliable(t *testing.T) {
 		cfg.StartPeer(i, true)
 	}
 
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(10 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -252,9 +264,11 @@ func TestManyPeersUnreliable(t *testing.T) {
 		cfg.StartPeer(i, true)
 	}
 
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(10 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -283,9 +297,11 @@ func TestHalfSeedersUnreliable(t *testing.T) {
 		}
 	}
 
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(10 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
@@ -310,9 +326,11 @@ func TestLargeFileUnreliable(t *testing.T) {
 		cfg.StartPeer(i, true)
 	}
 
-	for !VerifyAll(servers, cfg) {
-		time.Sleep(10 * time.Millisecond)
+	peerList := make([]int, 0)
+	for i := 1; i < servers; i++ {
+		peerList = append(peerList, i)
 	}
+	cfg.MultiVerify(peerList)
 
 	// Choke all peers from seed peer, see if Peer 2 can get from Peer 1
 
