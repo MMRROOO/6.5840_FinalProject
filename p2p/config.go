@@ -134,12 +134,12 @@ func (cfg *testConfig) StartTracker(Data []byte) {
 
 }
 
-func (cfg *testConfig) StartPeer(i int) *Peer {
+func (cfg *testConfig) StartPeer(i int, Seeding bool) *Peer {
 	endname := randstring(20)
 	serverEnd := cfg.net.MakeEnd(endname)
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
-	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize)
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize, Seeding)
 
 	cfg.peers[i] = P
 
@@ -152,7 +152,7 @@ func (cfg *testConfig) StartPeer(i int) *Peer {
 	return P
 }
 
-func (cfg *testConfig) replacePeer(i int) *Peer {
+func (cfg *testConfig) replacePeer(i int, Seeding bool) *Peer {
 	endname := randstring(20)
 	cfg.disconnect(i)
 
@@ -160,7 +160,7 @@ func (cfg *testConfig) replacePeer(i int) *Peer {
 	cfg.net.Connect(endname, TRACKERID)
 	cfg.net.Enable(endname, true)
 
-	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize)
+	P := MakePeer(cfg.hashes, serverEnd, i, cfg.endpoints[i], cfg.ChunkSize, Seeding)
 
 	for _, p := range cfg.peers {
 		for index, peer := range p.knownPeers {
