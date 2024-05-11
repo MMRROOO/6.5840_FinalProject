@@ -38,6 +38,8 @@ type Peer struct {
 	ChunkSize     int
 	Seeding       bool
 	start         time.Time
+	rarest        map[int]int  //map from chunk num to peer that could send
+	not_rarest    map[int]bool //set of chunks that are not in rarest but we don't have
 }
 
 func (P *Peer) HeartBeat(peer int) {
@@ -261,6 +263,7 @@ func (P *Peer) GetChunksToRequest(peer int) []int {
 	for i := 0; i < P.NChunks; i++ {
 		if reply.ChunksOwned[i] && (!P.ChunksOwned[i]) {
 			ChunksToRequest = append(ChunksToRequest, i)
+			P.
 		}
 	}
 
@@ -303,6 +306,20 @@ func (pr *Peer) Kill() {
 func (pr *Peer) killed() bool {
 	z := atomic.LoadInt32(&pr.dead)
 	return z == 1
+}
+
+// returns 
+func (P *Peer) addRarity(chunk int, peer int) {
+	if P.ChunksOwned[chunk] {
+		return 
+	}
+	_, ok := P.rarest[chunk]
+	if ok {
+		delete(P.rarest, chunk)
+		P.not_rarest[chunk] = true
+	} else {
+		P.rarest[chunk] = peer
+	}
 }
 
 func (P *Peer) ReloadPeers() {
