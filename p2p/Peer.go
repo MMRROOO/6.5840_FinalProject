@@ -239,7 +239,7 @@ func (P *Peer) GetChunk(peer int, chunk int) bool {
 			P.ChunksOwned[chunk] = true
 			// DPrintf("Peer %v got chunk %v from peer %v", P.me, chunk, peer)
 			for i := 0; i < len(P.knownPeers); i++ {
-				P.SendHaveUpdate(P.knownPeers[i], chunk)
+				go P.SendHaveUpdate(P.knownPeers[i], chunk)
 			}
 			return true
 		}
@@ -448,7 +448,7 @@ func (P *Peer) ticker(peer int) {
 		if P.knownPeerInfo[peer].peer_interested || nrand()%10 == 0 {
 			// fmt.Printf("me: %d, peer: %d\n", P.me, peer)
 			P.mu.Unlock()
-			P.ChangeChokeStatus(peer, false)
+			go P.ChangeChokeStatus(peer, false)
 			// if !P.ChangeChokeStatus(peer, false) {
 			// 	P.mu.Lock()
 			// 	P.knownPeers = removeFromList(peer, P.knownPeers)
@@ -464,7 +464,7 @@ func (P *Peer) ticker(peer int) {
 		// fmt.Print(toRequest)
 		P.mu.Unlock()
 		if len(toRequest) != 0 {
-			P.ChangeInterestStatus(peer, true)
+			go P.ChangeInterestStatus(peer, true)
 			// if !P.ChangeInterestStatus(peer, true) {
 			// 	P.mu.Lock()
 			// 	P.knownPeers = removeFromList(peer, P.knownPeers)
