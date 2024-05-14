@@ -1,17 +1,18 @@
-package p2p
+package p2pGoRPC
 
 import (
 	"crypto/sha256"
 	"fmt"
+	"log"
+	"net/http"
+	"net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"torrent/labrpc"
 )
 
 type flag struct {
-	peer int
+	peer string
 	flag bool
 }
 
@@ -30,39 +31,38 @@ type Peer struct {
 	ChunksOwned   []bool
 	Hashes        []byte
 	NChunks       int
-	allpeers      []*labrpc.ClientEnd
-	knownPeerInfo map[int]PeerInfo
-	knownPeers    []int
-	Tracker       *labrpc.ClientEnd
+	knownPeerInfo map[string]PeerInfo
+	knownPeers    []string
+	Tracker       string
 	choked        []flag //indicate which peers don't recieve upload chunks
-	me            int
+	me            string
 	dead          int32
 	ChunkSize     int
 	Seeding       bool
 	start         time.Time
-	rarest        map[int]int  //map from chunk num to peer that could send
-	not_rarest    map[int]bool //set of chunks that are not in rarest but we don't have
+	rarest        map[int]string //map from chunk num to peer that could send
+	not_rarest    map[int]bool   //set of chunks that are not in rarest but we don't have
 }
 
-func (P *Peer) HeartBeat(peer int) {
-	P.mu.Lock()
-	defer P.mu.Unlock()
+// func (P *Peer) HeartBeat(peer int) {
+// 	P.mu.Lock()
+// 	defer P.mu.Unlock()
 
-	args := EmptyArgs{}
+// 	args := EmptyArgs{}
 
-	reply := EmptyReply{}
+// 	reply := EmptyReply{}
 
-	P.mu.Unlock()
-	ok := P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
+// 	P.mu.Unlock()
+// 	ok := peer.Call("Peer.ReceiveHeartbeat", &args, &reply)
 
-	c := 0
-	for !ok && P.killed() == false && c < 5 {
-		ok = P.allpeers[peer].Call("Peer.ReceiveHeartbeat", &args, &reply)
-	}
-	return
-}
+// 	c := 0
+// 	for !ok && P.killed() == false && c < 5 {
+// 		ok = peer.Call("Peer.ReceiveHeartbeat", &args, &reply)
+// 	}
+// 	return
+// }
 
-func (P *Peer) AddPeerFromRPCCall(peer int) {
+func (P *Peer) AddPeerFromRPCCall(peer string) {
 	P.mu.Lock()
 	defer P.mu.Unlock()
 
@@ -90,7 +90,7 @@ func (P *Peer) AddPeerFromRPCCall(peer int) {
 
 func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) {}
 
-func (P *Peer) ChangeChokeStatus(peer int, status bool) bool {
+func (P *Peer) ChangeChokeStatus(peer string, status bool) bool {
 	P.mu.Lock()
 
 	pinfo := P.knownPeerInfo[peer]
@@ -103,14 +103,22 @@ func (P *Peer) ChangeChokeStatus(peer int, status bool) bool {
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
-	c := 0
-	for !ok && P.killed() == false && c < 5 {
-		ok = P.allpeers[peer].Call("Peer.ChokeStatus", &args, &reply)
+	client, err := rpc.DialHTTP("tcp", peer)
+	if err != nil {
+		log.Fatal("dialing:", err)
 	}
-	if c == 5 {
-		return false
+	call_err := client.Call("Peer.ChokeStatus", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
 	}
+	// ok := peer.Call("Peer.ChokeStatus", &args, &reply)
+	// c := 0
+	// for !ok && P.killed() == false && c < 5 {
+	// 	ok = peer.Call("Peer.ChokeStatus", &args, &reply)
+	// }
+	// if c == 5 {
+	// 	return false
+	// }
 	return true
 }
 
@@ -125,7 +133,7 @@ func (P *Peer) ChokeStatus(args *StatusArgs, reply *EmptyReply) {
 	P.mu.Unlock()
 }
 
-func (P *Peer) ChangeInterestStatus(peer int, status bool) bool {
+func (P *Peer) ChangeInterestStatus(peer string, status bool) bool {
 	P.mu.Lock()
 
 	pinfo := P.knownPeerInfo[peer]
@@ -138,15 +146,24 @@ func (P *Peer) ChangeInterestStatus(peer int, status bool) bool {
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
+	client, err := rpc.DialHTTP("tcp", peer)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	call_err := client.Call("Peer.InterestStatus", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
+	}
 
-	c := 5
-	for !ok && P.killed() == false && c < 5 {
-		ok = P.allpeers[peer].Call("Peer.InterestStatus", &args, &reply)
-	}
-	if c == 5 {
-		return false
-	}
+	// ok := peer.Call("Peer.InterestStatus", &args, &reply)
+
+	// c := 5
+	// for !ok && P.killed() == false && c < 5 {
+	// 	ok = peer.Call("Peer.InterestStatus", &args, &reply)
+	// }
+	// if c == 5 {
+	// 	return false
+	// }
 	return true
 
 }
@@ -162,7 +179,7 @@ func (P *Peer) InterestStatus(args *StatusArgs, reply *EmptyReply) {
 	P.mu.Unlock()
 }
 
-func (P *Peer) SendHaveUpdate(peer int, chunk int) bool {
+func (P *Peer) SendHaveUpdate(peer string, chunk int) bool {
 	P.mu.Lock()
 
 	args := HaveUpdateArgs{Chunk: chunk,
@@ -171,15 +188,23 @@ func (P *Peer) SendHaveUpdate(peer int, chunk int) bool {
 	reply := EmptyReply{}
 
 	P.mu.Unlock()
-	ok := P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
 
-	c := 5
-	for !ok && P.killed() == false && c < 5 {
-		ok = P.allpeers[peer].Call("Peer.HaveUpdate", &args, &reply)
+	client, err := rpc.DialHTTP("tcp", peer)
+	if err != nil {
+		log.Fatal("dialing:", err)
 	}
-	if c == 5 {
-		return false
+	call_err := client.Call("Peer.HaveUpdate", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
 	}
+
+	// c := 5
+	// for !ok && P.killed() == false && c < 5 {
+	// 	ok = peer.Call("Peer.HaveUpdate", &args, &reply)
+	// }
+	// if c == 5 {
+	// 	return false
+	// }
 	return true
 }
 
@@ -208,24 +233,39 @@ func (P *Peer) GetMetaData() {
 	args := MetaDataArgs{}
 	reply := MetaDataReply{}
 
-	ok := P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
-	if !ok {
-		ok = P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
-
+	client, err := rpc.DialHTTP("tcp", P.Tracker)
+	if err != nil {
+		log.Fatal("dialing:", err)
 	}
+	call_err := client.Call("Peer.SendFileMetaData", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
+	}
+	// ok := P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
+	// if !ok {
+	// 	ok = P.Tracker.Call("Tracker.SendFileMetaData", &args, &reply)
+
+	// }
 
 	P.Hashes = reply.Hashes
 	P.DataOwned = make([]byte, ((len(P.Hashes) / 32) * P.ChunkSize))
 }
 
-func (P *Peer) GetChunk(peer int, chunk int) bool {
+func (P *Peer) GetChunk(peer string, chunk int) bool {
 
 	args := SendChunkArgs{}
 	args.Me = P.me
 	args.Chunk = chunk
 	reply := SendChunkReply{}
-	ok := P.allpeers[peer].Call("Peer.SendChunk", &args, &reply)
-	if ok && reply.Valid {
+	client, err := rpc.DialHTTP("tcp", peer)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	call_err := client.Call("Peer.SendChunk", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
+	}
+	if reply.Valid {
 
 		if P.CheckHash(reply.Data, chunk) {
 
@@ -262,7 +302,7 @@ func (P *Peer) getRarity(chunk int) int {
 	return 0
 }
 
-func (P *Peer) incrRarity(chunk int, peer int) int {
+func (P *Peer) incrRarity(chunk int, peer string) int {
 	rarity := P.getRarity(chunk)
 	if rarity == -1 || rarity == 2 {
 		return rarity
@@ -309,14 +349,21 @@ func (P *Peer) CheckHash(Data []byte, chunk int) bool {
 }
 
 // Requests a list of chunks that peer has, returns those we don't own
-func (P *Peer) GetChunksToRequest(peer int) ([]int, []int) {
+func (P *Peer) GetChunksToRequest(peer string) ([]int, []int) {
 	args := SendChunksOwnedArgs{Me: P.me}
 	reply := SendChunksOwnedReply{}
-
-	ok := P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
-	for !ok {
-		ok = P.allpeers[peer].Call("Peer.SendChunksOwned", &args, &reply)
+	client, err := rpc.DialHTTP("tcp", peer)
+	if err != nil {
+		log.Fatal("dialing:", err)
 	}
+	call_err := client.Call("Peer.SendChunksOwned", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
+	}
+	// ok := peer.Call("Peer.SendChunksOwned", &args, &reply)
+	// for !ok {
+	// 	ok = peer.Call("Peer.SendChunksOwned", &args, &reply)
+	// }
 	ChunksToRequest := make([]int, 0)
 	RareChunks := make([]int, 0)
 	P.mu.Lock()
@@ -352,7 +399,7 @@ func (P *Peer) ChokeToggle(chokeFlag bool) {
 	}
 }
 
-func (P *Peer) chokeStatus(peer int) bool {
+func (P *Peer) chokeStatus(peer string) bool {
 	for _, flag := range P.choked {
 		if flag.peer == peer {
 			return flag.flag
@@ -373,7 +420,7 @@ func (pr *Peer) killed() bool {
 }
 
 // returns
-func (P *Peer) addRarity(chunk int, peer int) {
+func (P *Peer) addRarity(chunk int, peer string) {
 	if P.ChunksOwned[chunk] {
 		return
 	}
@@ -389,14 +436,23 @@ func (P *Peer) addRarity(chunk int, peer int) {
 func (P *Peer) ReloadPeers() {
 	args := SendPeerArgs{P.me}
 	reply := SendPeerReply{}
-	ok := P.Tracker.Call("Tracker.SendPeers", &args, &reply)
-	for !ok && P.killed() == false {
-		ok = P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+
+	client, err := rpc.DialHTTP("tcp", P.Tracker)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	call_err := client.Call("Tracker.SendPeers", &args, &reply)
+	if call_err != nil {
+		log.Fatal("arith error:", call_err)
 	}
 
+	// for !ok && P.killed() == false {
+	// 	ok = P.Tracker.Call("Tracker.SendPeers", &args, &reply)
+	// }
+
 	P.mu.Lock()
-	P.knownPeers = make([]int, 0)
-	P.knownPeerInfo = make(map[int]PeerInfo)
+	P.knownPeers = make([]string, 0)
+	P.knownPeerInfo = make(map[string]PeerInfo)
 	for i := 0; i < len(reply.Peers); i++ {
 		P.knownPeers = append(P.knownPeers, reply.Peers[i])
 		P.knownPeerInfo[reply.Peers[i]] = PeerInfo{
@@ -419,7 +475,7 @@ func (P *Peer) Starttickers() {
 	// 	P.ReloadPeers()
 	// }
 
-	for p := range P.knownPeers {
+	for _, p := range P.knownPeers {
 		go P.ticker(p)
 	}
 
@@ -433,7 +489,7 @@ func removeFromList(val int, list []int) []int {
 	return list
 }
 
-func (P *Peer) ticker(peer int) {
+func (P *Peer) ticker(peer string) {
 	toRequest, rareChunks := P.GetChunksToRequest(peer)
 	P.mu.Lock()
 	pinfo := P.knownPeerInfo[peer]
@@ -529,7 +585,7 @@ func (P *Peer) finished() bool {
 	return true
 }
 
-func (P *Peer) clearDownloaded(peer int) {
+func (P *Peer) clearDownloaded(peer string) {
 	newList := make([]int, 0)
 	pinfo := P.knownPeerInfo[peer]
 
@@ -581,22 +637,21 @@ func (P *Peer) findRarestChunk(peer int, toRequest []int) int {
 	return nrand() % len(toRequest)
 }
 
-func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labrpc.ClientEnd, CSize int, Seeding bool) *Peer {
+func MakePeer(hashes []byte, tracker string, me int, CSize int, Seeding bool) *Peer {
 
 	P := &Peer{}
 	P.mu.Lock()
 	P.Hashes = hashes
 	P.Tracker = tracker
-	P.allpeers = allPeers
-	P.knownPeerInfo = make(map[int]PeerInfo)
+	P.knownPeerInfo = make(map[string]PeerInfo)
 	P.NChunks = len(hashes) / 32
 	P.ChunkSize = CSize
 	P.DataOwned = make([]byte, P.NChunks*P.ChunkSize)
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
-	P.me = me
+	P.me = CreateEndpointSelf(P)
 	P.Seeding = Seeding
 	P.start = time.Now()
-	P.rarest = make(map[int]int, 0)
+	P.rarest = make(map[int]string, 0)
 	P.not_rarest = make(map[int]bool, 0)
 	P.mu.Unlock()
 
@@ -622,35 +677,73 @@ func MakePeer(hashes []byte, tracker *labrpc.ClientEnd, me int, allPeers []*labr
 
 // }
 
-func (P *Peer) randomUnchoke() {
-	for P.killed() == false {
+// func (P *Peer) randomUnchoke() {
+// 	for P.killed() == false {
 
-		if len(P.knownPeers) > 0 {
-			P.mu.Lock()
-			randPeer := nrand() % len(P.knownPeers)
-			P.mu.Unlock()
+// 		if len(P.knownPeers) > 0 {
+// 			P.mu.Lock()
+// 			randPeer := nrand() % len(P.knownPeers)
+// 			P.mu.Unlock()
 
-			P.ChangeChokeStatus(P.knownPeers[randPeer], false)
-		}
-		// time.Sleep(50 * time.Millisecond)
+//				P.ChangeChokeStatus(P.knownPeers[randPeer], false)
+//			}
+//			// time.Sleep(50 * time.Millisecond)
+//		}
+//	}
+
+var ipAddress = "localhost"
+
+func handler(w http.ResponseWriter, req *http.Request) {
+	/*
+		get its own IP address so it can send to tracker
+	*/
+	ipAddress = req.Header.Get("X-Real-Ip") // Store the IP address from the request header
+	if ipAddress == "" {
+		ipAddress = req.Header.Get("X-Forwarded-For")
+	}
+	if ipAddress == "" {
+		ipAddress = req.RemoteAddr
+	}
+	ipAddress = "localhost"
+
+}
+
+func CreateEndpointSelf(P *Peer) string {
+	/*
+		i is ID of the peer (unique)
+	*/
+
+	ownEndpoint := "localhost:8090"
+
+	fmt.Print(ownEndpoint, "\n")
+	go RegisterWithEndpoint(P, ownEndpoint)
+
+	return ownEndpoint
+}
+
+func RegisterWithEndpoint(P *Peer, e string) {
+	rpc.Register(P)
+	http.HandleFunc("/"+e, handler)
+	err := http.ListenAndServe(e, nil)
+	if err != nil {
+		fmt.Print("network error ", err, "\n")
 	}
 }
 
-func MakeSeedPeer(hashes []byte, data []byte, allPeers []*labrpc.ClientEnd, tracker *labrpc.ClientEnd) *Peer {
+func MakeSeedPeer(hashes []byte, data []byte, tracker string) *Peer {
 	P := &Peer{}
 	P.mu.Lock()
 	P.Hashes = hashes
 	P.Tracker = tracker
-	P.allpeers = allPeers
-	P.knownPeerInfo = make(map[int]PeerInfo)
+	P.knownPeerInfo = make(map[string]PeerInfo)
 	P.NChunks = len(hashes) / 32
 	P.DataOwned = data
 	P.ChunkSize = len(data) / P.NChunks
 	P.ChunksOwned = make([]bool, (len(hashes) / 32))
-	P.me = 0
+	P.me = CreateEndpointSelf(P)
 	P.Seeding = true
 	P.start = time.Now()
-	P.rarest = make(map[int]int, 0)
+	P.rarest = make(map[int]string, 0)
 	P.not_rarest = make(map[int]bool, 0)
 	for i := 0; i < len(P.ChunksOwned); i++ {
 		P.ChunksOwned[i] = true

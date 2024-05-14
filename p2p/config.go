@@ -222,6 +222,9 @@ func (cfg *testConfig) MultiVerify(peerList []int) {
 		if !matched {
 			dur = -1
 		}
+		if owned && !cfg.peers[i].Seeding {
+			cfg.disconnect(i)
+		}
 		DPrintf("peer %v has matched: %v in %v ms", i, matched, dur)
 		replChan <- dur
 	}

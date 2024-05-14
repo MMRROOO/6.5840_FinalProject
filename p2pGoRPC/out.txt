@@ -1,0 +1,461 @@
+Test - HalfSeedingUnreliable ...
+killing: 2killing: 2killing: 2SIGQUIT: quit
+PC=0x4074ee m=0 sigcode=128
+
+goroutine 0 [idle]:
+runtime/internal/syscall.Syscall6()
+	/usr/lib/golang/src/runtime/internal/syscall/asm_linux_amd64.s:36 +0xe fp=0x7fff118b4a90 sp=0x7fff118b4a88 pc=0x4074ee
+runtime/internal/syscall.EpollWait(0x4?, {0x7fff118b4b58?, 0x7fff00000010?, 0x7fff00000001?}, 0x1?, 0x0?)
+	/usr/lib/golang/src/runtime/internal/syscall/syscall_linux.go:55 +0x45 fp=0x7fff118b4ae0 sp=0x7fff118b4a90 pc=0x407465
+runtime.netpoll(0xc000030000?)
+	/usr/lib/golang/src/runtime/netpoll_epoll.go:118 +0xcb fp=0x7fff118b5170 sp=0x7fff118b4ae0 pc=0x43724b
+runtime.findRunnable()
+	/usr/lib/golang/src/runtime/proc.go:3186 +0x825 fp=0x7fff118b5280 sp=0x7fff118b5170 pc=0x4431e5
+runtime.schedule()
+	/usr/lib/golang/src/runtime/proc.go:3577 +0xb1 fp=0x7fff118b52b8 sp=0x7fff118b5280 pc=0x444351
+runtime.park_m(0xc000202340?)
+	/usr/lib/golang/src/runtime/proc.go:3740 +0x11f fp=0x7fff118b5300 sp=0x7fff118b52b8 pc=0x44485f
+runtime.mcall()
+	/usr/lib/golang/src/runtime/asm_amd64.s:458 +0x4e fp=0x7fff118b5318 sp=0x7fff118b5300 pc=0x46e90e
+
+goroutine 1 [chan receive]:
+runtime.gopark(0xc00014d9e8?, 0x4109c5?, 0xe8?, 0xa2?, 0x18?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00014d980 sp=0xc00014d960 pc=0x43df8e
+runtime.chanrecv(0xc00016a070, 0xc00014da67, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc00014d9f8 sp=0xc00014d980 pc=0x409e2d
+runtime.chanrecv1(0x7e4d40?, 0x5f10c0?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc00014da20 sp=0xc00014d9f8 pc=0x409a32
+testing.(*T).Run(0xc000102ea0, {0x63e750?, 0x50f4dc?}, 0x64a338)
+	/usr/lib/golang/src/testing/testing.go:1649 +0x3c8 fp=0xc00014dae0 sp=0xc00014da20 pc=0x510a28
+testing.runTests.func1(0x7e5a00?)
+	/usr/lib/golang/src/testing/testing.go:2054 +0x3e fp=0xc00014db30 sp=0xc00014dae0 pc=0x512b3e
+testing.tRunner(0xc000102ea0, 0xc00014dc48)
+	/usr/lib/golang/src/testing/testing.go:1595 +0xff fp=0xc00014db80 sp=0xc00014db30 pc=0x50fbff
+testing.runTests(0xc000120140?, {0x7e07c0, 0xc, 0xc}, {0x416c9f?, 0xc00014dd08?, 0x7e5120?})
+	/usr/lib/golang/src/testing/testing.go:2052 +0x445 fp=0xc00014dc78 sp=0xc00014db80 pc=0x512a25
+testing.(*M).Run(0xc000120140)
+	/usr/lib/golang/src/testing/testing.go:1925 +0x636 fp=0xc00014dec0 sp=0xc00014dc78 pc=0x511416
+main.main()
+	_testmain.go:69 +0x19c fp=0xc00014df40 sp=0xc00014dec0 pc=0x5d9c1c
+runtime.main()
+	/usr/lib/golang/src/runtime/proc.go:267 +0x2bb fp=0xc00014dfe0 sp=0xc00014df40 pc=0x43db1b
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00014dfe8 sp=0xc00014dfe0 pc=0x470781
+
+goroutine 2 [force gc (idle)]:
+runtime.gopark(0x0?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000060fa8 sp=0xc000060f88 pc=0x43df8e
+runtime.goparkunlock(...)
+	/usr/lib/golang/src/runtime/proc.go:404
+runtime.forcegchelper()
+	/usr/lib/golang/src/runtime/proc.go:322 +0xb3 fp=0xc000060fe0 sp=0xc000060fa8 pc=0x43ddf3
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000060fe8 sp=0xc000060fe0 pc=0x470781
+created by runtime.init.6 in goroutine 1
+	/usr/lib/golang/src/runtime/proc.go:310 +0x1a
+
+goroutine 3 [GC sweep wait]:
+runtime.gopark(0x1?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000061778 sp=0xc000061758 pc=0x43df8e
+runtime.goparkunlock(...)
+	/usr/lib/golang/src/runtime/proc.go:404
+runtime.bgsweep(0x0?)
+	/usr/lib/golang/src/runtime/mgcsweep.go:321 +0xdf fp=0xc0000617c8 sp=0xc000061778 pc=0x42847f
+runtime.gcenable.func1()
+	/usr/lib/golang/src/runtime/mgc.go:200 +0x25 fp=0xc0000617e0 sp=0xc0000617c8 pc=0x41d5e5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0000617e8 sp=0xc0000617e0 pc=0x470781
+created by runtime.gcenable in goroutine 1
+	/usr/lib/golang/src/runtime/mgc.go:200 +0x66
+
+goroutine 4 [sleep]:
+runtime.gopark(0xc000094000?, 0x4ca49f75b19?, 0x0?, 0x0?, 0x64a4d0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000061f30 sp=0xc000061f10 pc=0x43df8e
+runtime.goparkunlock(...)
+	/usr/lib/golang/src/runtime/proc.go:404
+runtime.(*scavengerState).sleep(0x7e51a0, 0x41032c1800000000)
+	/usr/lib/golang/src/runtime/mgcscavenge.go:504 +0x113 fp=0xc000061fa0 sp=0xc000061f30 pc=0x425ed3
+runtime.bgscavenge(0x0?)
+	/usr/lib/golang/src/runtime/mgcscavenge.go:662 +0x74 fp=0xc000061fc8 sp=0xc000061fa0 pc=0x4262d4
+runtime.gcenable.func2()
+	/usr/lib/golang/src/runtime/mgc.go:201 +0x25 fp=0xc000061fe0 sp=0xc000061fc8 pc=0x41d585
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000061fe8 sp=0xc000061fe0 pc=0x470781
+created by runtime.gcenable in goroutine 1
+	/usr/lib/golang/src/runtime/mgc.go:201 +0xa5
+
+goroutine 17 [finalizer wait]:
+runtime.gopark(0x41025e?, 0x400000?, 0x70?, 0x6?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000060620 sp=0xc000060600 pc=0x43df8e
+runtime.runfinq()
+	/usr/lib/golang/src/runtime/mfinal.go:193 +0x107 fp=0xc0000607e0 sp=0xc000060620 pc=0x41c607
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0000607e8 sp=0xc0000607e0 pc=0x470781
+created by runtime.createfing in goroutine 1
+	/usr/lib/golang/src/runtime/mfinal.go:163 +0x3d
+
+goroutine 18 [sleep]:
+runtime.gopark(0x4ca0f8f86d9?, 0xc000229e48?, 0x20?, 0x51?, 0xc000136380?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000229e18 sp=0xc000229df8 pc=0x43df8e
+time.Sleep(0x1312d00)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc000229e58 sp=0xc000229e18 pc=0x46d945
+torrent/p2p.(*testConfig).MultiVerify(0xc000180000, {0xc000162120, 0x3, 0x1000?})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/config.go:247 +0x1d9 fp=0xc000229ed0 sp=0xc000229e58 pc=0x5d6479
+torrent/p2p.TestHalfSeedersUnreliable(0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/test_test.go:304 +0x185 fp=0xc000229f70 sp=0xc000229ed0 pc=0x5d9565
+testing.tRunner(0xc000103040, 0x64a338)
+	/usr/lib/golang/src/testing/testing.go:1595 +0xff fp=0xc000229fc0 sp=0xc000229f70 pc=0x50fbff
+testing.(*T).Run.func1()
+	/usr/lib/golang/src/testing/testing.go:1648 +0x25 fp=0xc000229fe0 sp=0xc000229fc0 pc=0x510b85
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000229fe8 sp=0xc000229fe0 pc=0x470781
+created by testing.(*T).Run in goroutine 1
+	/usr/lib/golang/src/testing/testing.go:1648 +0x3ad
+
+goroutine 19 [select]:
+runtime.gopark(0xc00005c6c0?, 0x2?, 0x5?, 0x51?, 0xc00005c6a4?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00005c550 sp=0xc00005c530 pc=0x43df8e
+runtime.selectgo(0xc00005c6c0, 0xc00005c6a0, 0xc00005c6c0?, 0x0, 0x688b20?, 0x1)
+	/usr/lib/golang/src/runtime/select.go:327 +0x725 fp=0xc00005c670 sp=0xc00005c550 pc=0x44e3a5
+torrent/labrpc.MakeNetwork.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:155 +0xd8 fp=0xc00005c7e0 sp=0xc00005c670 pc=0x5ccf38
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00005c7e8 sp=0xc00005c7e0 pc=0x470781
+created by torrent/labrpc.MakeNetwork in goroutine 18
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:153 +0x196
+
+goroutine 42 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc0001206e0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc0000a9b80 sp=0xc0000a9b60 pc=0x43df8e
+runtime.chanrecv(0xc0003982a0, 0xc0000a9cc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc0000a9bf8 sp=0xc0000a9b80 pc=0x409e2d
+runtime.chanrecv1(0xc0000a9ca0?, 0xc0000a9c60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc0000a9c20 sp=0xc0000a9bf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc0001520a0, {0x63b5de?, 0x0?}, {0x5e9be0, 0xc0002703d0}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc0000a9d90 sp=0xc0000a9c20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180100, 0x0, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:106 +0x1ad fp=0xc0000a9e20 sp=0xc0000a9d90 pc=0x5d1c8d
+torrent/p2p.(*Peer).ticker(0xc000180100, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc0000a9fc0 sp=0xc0000a9e20 pc=0x5d3f85
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc0000a9fe0 sp=0xc0000a9fc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0000a9fe8 sp=0xc0000a9fe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 20
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 50 [sleep]:
+runtime.gopark(0x4ca101b961e?, 0xc00014be10?, 0x9?, 0x32?, 0x79ab10b3a37ab5d9?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00014bde0 sp=0xc00014bdc0 pc=0x43df8e
+time.Sleep(0x989680)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc00014be20 sp=0xc00014bde0 pc=0x46d945
+torrent/p2p.(*Peer).ticker(0xc000180200, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:519 +0x1d1 fp=0xc00014bfc0 sp=0xc00014be20 pc=0x5d3eb1
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc00014bfe0 sp=0xc00014bfc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00014bfe8 sp=0xc00014bfe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 21
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 26 [sleep]:
+runtime.gopark(0x4ca0f8f77eb?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00005ff30 sp=0xc00005ff10 pc=0x43df8e
+time.Sleep(0x1312d00)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc00005ff70 sp=0xc00005ff30 pc=0x46d945
+torrent/p2p.(*testConfig).MultiVerify.func1(0x0?, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/config.go:218 +0xf5 fp=0xc00005ffc0 sp=0xc00005ff70 pc=0x5d6655
+torrent/p2p.(*testConfig).MultiVerify.func2()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/config.go:232 +0x2b fp=0xc00005ffe0 sp=0xc00005ffc0 pc=0x5d652b
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00005ffe8 sp=0xc00005ffe0 pc=0x470781
+created by torrent/p2p.(*testConfig).MultiVerify in goroutine 18
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/config.go:232 +0x8c
+
+goroutine 36 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc000252280?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc0004ddb80 sp=0xc0004ddb60 pc=0x43df8e
+runtime.chanrecv(0xc0004242a0, 0xc0004ddcc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc0004ddbf8 sp=0xc0004ddb80 pc=0x409e2d
+runtime.chanrecv1(0xc0004ddca0?, 0xc0004ddc60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc0004ddc20 sp=0xc0004ddbf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc000152280, {0x63c4b7?, 0x0?}, {0x5e9be0, 0xc0004084f0}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc0004ddd90 sp=0xc0004ddc20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeInterestStatus(0xc000180400, 0x0, 0x1)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:141 +0x1a9 fp=0xc0004dde20 sp=0xc0004ddd90 pc=0x5d2069
+torrent/p2p.(*Peer).ticker(0xc000180400, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:467 +0x3c7 fp=0xc0004ddfc0 sp=0xc0004dde20 pc=0x5d40a7
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc0004ddfe0 sp=0xc0004ddfc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0004ddfe8 sp=0xc0004ddfe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 23
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 37 [sleep]:
+runtime.gopark(0x4ca1085c1e0?, 0xc000173e10?, 0x9?, 0x32?, 0xe445cb8cdcf5b054?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000173de0 sp=0xc000173dc0 pc=0x43df8e
+time.Sleep(0x989680)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc000173e20 sp=0xc000173de0 pc=0x46d945
+torrent/p2p.(*Peer).ticker(0xc000180400, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:519 +0x1d1 fp=0xc000173fc0 sp=0xc000173e20 pc=0x5d3eb1
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc000173fe0 sp=0xc000173fc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000173fe8 sp=0xc000173fe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 23
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 54 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc0002521e0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00014fb80 sp=0xc00014fb60 pc=0x43df8e
+runtime.chanrecv(0xc000424240, 0xc00014fcc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc00014fbf8 sp=0xc00014fb80 pc=0x409e2d
+runtime.chanrecv1(0xc00014fca0?, 0xc00014fc60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc00014fc20 sp=0xc00014fbf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc000152200, {0x63b5de?, 0x1?}, {0x5e9be0, 0xc0001d5e60}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc00014fd90 sp=0xc00014fc20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180300, 0x1, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:109 +0x1f2 fp=0xc00014fe20 sp=0xc00014fd90 pc=0x5d1cd2
+torrent/p2p.(*Peer).ticker(0xc000180300, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc00014ffc0 sp=0xc00014fe20 pc=0x5d3f85
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc00014ffe0 sp=0xc00014ffc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00014ffe8 sp=0xc00014ffe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 22
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 43 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc000120640?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00020fb80 sp=0xc00020fb60 pc=0x43df8e
+runtime.chanrecv(0xc000398240, 0xc00020fcc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc00020fbf8 sp=0xc00020fb80 pc=0x409e2d
+runtime.chanrecv1(0xc00020fca0?, 0xc00020fc60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc00020fc20 sp=0xc00020fbf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc0001520c0, {0x63b5de?, 0x1?}, {0x5e9be0, 0xc000270340}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc00020fd90 sp=0xc00020fc20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180100, 0x1, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:106 +0x1ad fp=0xc00020fe20 sp=0xc00020fd90 pc=0x5d1c8d
+torrent/p2p.(*Peer).ticker(0xc000180100, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc00020ffc0 sp=0xc00020fe20 pc=0x5d3f85
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc00020ffe0 sp=0xc00020ffc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00020ffe8 sp=0xc00020ffe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 20
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 44 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc0003d50e0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc0000b0b80 sp=0xc0000b0b60 pc=0x43df8e
+runtime.chanrecv(0xc000399140, 0xc000243cc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc0000b0bf8 sp=0xc0000b0b80 pc=0x409e2d
+runtime.chanrecv1(0xc000243ca0?, 0xc000243c60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc0000b0c20 sp=0xc0000b0bf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc0001520e0, {0x63b5de?, 0x2?}, {0x5e9be0, 0xc0003595d0}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc0000b0d90 sp=0xc0000b0c20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180100, 0x2, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:109 +0x1f2 fp=0xc0000b0e20 sp=0xc0000b0d90 pc=0x5d1cd2
+torrent/p2p.(*Peer).ticker(0xc000180100, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc0000b0fc0 sp=0xc0000b0e20 pc=0x5d3f85
+torrent/p2p.(*Peer).Starttickers.func1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x25 fp=0xc0000b0fe0 sp=0xc0000b0fc0 pc=0x5d3ca5
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0000b0fe8 sp=0xc0000b0fe0 pc=0x470781
+created by torrent/p2p.(*Peer).Starttickers in goroutine 20
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:423 +0x45
+
+goroutine 46 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc0002520a0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc0004e1b80 sp=0xc0004e1b60 pc=0x43df8e
+runtime.chanrecv(0xc0004240c0, 0xc0004e1cc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc0004e1bf8 sp=0xc0004e1b80 pc=0x409e2d
+runtime.chanrecv1(0xc0004e1ca0?, 0xc0004e1c60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc0004e1c20 sp=0xc0004e1bf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc0001521a0, {0x63b5de?, 0x3?}, {0x5e9be0, 0xc000408260}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc0004e1d90 sp=0xc0004e1c20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180200, 0x3, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:106 +0x1ad fp=0xc0004e1e20 sp=0xc0004e1d90 pc=0x5d1c8d
+torrent/p2p.(*Peer).ticker(0xc000180200, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc0004e1fc0 sp=0xc0004e1e20 pc=0x5d3f85
+torrent/p2p.(*Peer).AddPeerFromRPCCall.func2()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x25 fp=0xc0004e1fe0 sp=0xc0004e1fc0 pc=0x5d1a25
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0004e1fe8 sp=0xc0004e1fe0 pc=0x470781
+created by torrent/p2p.(*Peer).AddPeerFromRPCCall in goroutine 45
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x21e
+
+goroutine 466 [GC worker (idle)]:
+runtime.gopark(0x4ca0df09243?, 0xc00010f200?, 0xb7?, 0xc4?, 0x13?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00019e750 sp=0xc00019e730 pc=0x43df8e
+runtime.gcBgMarkWorker()
+	/usr/lib/golang/src/runtime/mgc.go:1295 +0xe5 fp=0xc00019e7e0 sp=0xc00019e750 pc=0x41f165
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00019e7e8 sp=0xc00019e7e0 pc=0x470781
+created by runtime.gcBgMarkStartWorkers in goroutine 465
+	/usr/lib/golang/src/runtime/mgc.go:1219 +0x1c
+
+goroutine 335 [GC worker (idle)]:
+runtime.gopark(0x4ca0df05f7b?, 0x1b?, 0x40?, 0x0?, 0xc00019c7d0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00019c750 sp=0xc00019c730 pc=0x43df8e
+runtime.gcBgMarkWorker()
+	/usr/lib/golang/src/runtime/mgc.go:1295 +0xe5 fp=0xc00019c7e0 sp=0xc00019c750 pc=0x41f165
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00019c7e8 sp=0xc00019c7e0 pc=0x470781
+created by runtime.gcBgMarkStartWorkers in goroutine 465
+	/usr/lib/golang/src/runtime/mgc.go:1219 +0x1c
+
+goroutine 12 [sleep]:
+runtime.gopark(0x4ca10331c50?, 0xc000247e10?, 0x9?, 0x32?, 0xf0d968fcd224f6e4?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000247de0 sp=0xc000247dc0 pc=0x43df8e
+time.Sleep(0x989680)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc000247e20 sp=0xc000247de0 pc=0x46d945
+torrent/p2p.(*Peer).ticker(0xc000180100, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:519 +0x1d1 fp=0xc000247fc0 sp=0xc000247e20 pc=0x5d3eb1
+torrent/p2p.(*Peer).AddPeerFromRPCCall.func2()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x25 fp=0xc000247fe0 sp=0xc000247fc0 pc=0x5d1a25
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000247fe8 sp=0xc000247fe0 pc=0x470781
+created by torrent/p2p.(*Peer).AddPeerFromRPCCall in goroutine 11
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x21e
+
+goroutine 63 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc0001203c0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000245b80 sp=0xc000245b60 pc=0x43df8e
+runtime.chanrecv(0xc0003980c0, 0xc000245cc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc000245bf8 sp=0xc000245b80 pc=0x409e2d
+runtime.chanrecv1(0xc000245ca0?, 0xc000245c60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc000245c20 sp=0xc000245bf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc000152180, {0x63b5de?, 0x2?}, {0x5e9be0, 0xc0003592a0}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc000245d90 sp=0xc000245c20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180200, 0x2, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:109 +0x1f2 fp=0xc000245e20 sp=0xc000245d90 pc=0x5d1cd2
+torrent/p2p.(*Peer).ticker(0xc000180200, 0xc0001563c0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc000245fc0 sp=0xc000245e20 pc=0x5d3f85
+torrent/p2p.(*Peer).AddPeerFromRPCCall.func2()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x25 fp=0xc000245fe0 sp=0xc000245fc0 pc=0x5d1a25
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000245fe8 sp=0xc000245fe0 pc=0x470781
+created by torrent/p2p.(*Peer).AddPeerFromRPCCall in goroutine 62
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x21e
+
+goroutine 100 [chan receive]:
+runtime.gopark(0x2?, 0x0?, 0x80?, 0x31?, 0xc000120460?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000243b80 sp=0xc000243b60 pc=0x43df8e
+runtime.chanrecv(0xc000398120, 0xc000243cc0, 0x1)
+	/usr/lib/golang/src/runtime/chan.go:583 +0x3cd fp=0xc000243bf8 sp=0xc000243b80 pc=0x409e2d
+runtime.chanrecv1(0xc000243ca0?, 0xc000243c60?)
+	/usr/lib/golang/src/runtime/chan.go:442 +0x12 fp=0xc000243c20 sp=0xc000243bf8 pc=0x409a32
+torrent/labrpc.(*ClientEnd).Call(0xc0001522c0, {0x63b5de?, 0x2?}, {0x5e9be0, 0xc00039cb50}, {0x5e9a60, 0x813220})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:114 +0x246 fp=0xc000243d90 sp=0xc000243c20 pc=0x5ccb06
+torrent/p2p.(*Peer).ChangeChokeStatus(0xc000180400, 0x2, 0x0)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:109 +0x1f2 fp=0xc000243e20 sp=0xc000243d90 pc=0x5d1cd2
+torrent/p2p.(*Peer).ticker(0xc000180400, 0x0?)
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:451 +0x2a5 fp=0xc000243fc0 sp=0xc000243e20 pc=0x5d3f85
+torrent/p2p.(*Peer).AddPeerFromRPCCall.func2()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x25 fp=0xc000243fe0 sp=0xc000243fc0 pc=0x5d1a25
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000243fe8 sp=0xc000243fe0 pc=0x470781
+created by torrent/p2p.(*Peer).AddPeerFromRPCCall in goroutine 99
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/p2p/Peer.go:87 +0x21e
+
+goroutine 2300 [sleep]:
+runtime.gopark(0x4ca0f7c787d?, 0x5f1240?, 0x78?, 0x24?, 0xc00019a650?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00019a620 sp=0xc00019a600 pc=0x43df8e
+time.Sleep(0x1312d00)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc00019a660 sp=0xc00019a620 pc=0x46d945
+torrent/labrpc.(*Network).processReq(0xc0001563c0, {{0x5f10c0, 0xc00010f110}, {0x63b5de, 0x10}, {0x68c440, 0x5e9be0}, {0xc000416080, 0x33, 0x40}, ...})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:227 +0xc5 fp=0xc00019a778 sp=0xc00019a660 pc=0x5cd685
+torrent/labrpc.MakeNetwork.func1.1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x3a fp=0xc00019a7e0 sp=0xc00019a778 pc=0x5cd07a
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00019a7e8 sp=0xc00019a7e0 pc=0x470781
+created by torrent/labrpc.MakeNetwork.func1 in goroutine 19
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x58
+
+goroutine 2304 [sleep]:
+runtime.gopark(0x4ca1060c386?, 0x5f1240?, 0x60?, 0x24?, 0xc000222e50?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000222e20 sp=0xc000222e00 pc=0x43df8e
+time.Sleep(0x1036640)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc000222e60 sp=0xc000222e20 pc=0x46d945
+torrent/labrpc.(*Network).processReq(0xc0001563c0, {{0x5f10c0, 0xc00010f200}, {0x63c4b7, 0x13}, {0x68c440, 0x5e9be0}, {0xc0004161c0, 0x35, 0x40}, ...})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:227 +0xc5 fp=0xc000222f78 sp=0xc000222e60 pc=0x5cd685
+torrent/labrpc.MakeNetwork.func1.1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x3a fp=0xc000222fe0 sp=0xc000222f78 pc=0x5cd07a
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000222fe8 sp=0xc000222fe0 pc=0x470781
+created by torrent/labrpc.MakeNetwork.func1 in goroutine 19
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x58
+
+goroutine 467 [GC worker (idle)]:
+runtime.gopark(0x4ca0df07b4c?, 0x3?, 0xd?, 0x81?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000062f50 sp=0xc000062f30 pc=0x43df8e
+runtime.gcBgMarkWorker()
+	/usr/lib/golang/src/runtime/mgc.go:1295 +0xe5 fp=0xc000062fe0 sp=0xc000062f50 pc=0x41f165
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000062fe8 sp=0xc000062fe0 pc=0x470781
+created by runtime.gcBgMarkStartWorkers in goroutine 465
+	/usr/lib/golang/src/runtime/mgc.go:1219 +0x1c
+
+goroutine 468 [GC worker (idle)]:
+runtime.gopark(0x4ca0df0622c?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000063750 sp=0xc000063730 pc=0x43df8e
+runtime.gcBgMarkWorker()
+	/usr/lib/golang/src/runtime/mgc.go:1295 +0xe5 fp=0xc0000637e0 sp=0xc000063750 pc=0x41f165
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc0000637e8 sp=0xc0000637e0 pc=0x470781
+created by runtime.gcBgMarkStartWorkers in goroutine 465
+	/usr/lib/golang/src/runtime/mgc.go:1219 +0x1c
+
+goroutine 2339 [sleep]:
+runtime.gopark(0x4ca0f7e91a6?, 0x5f1240?, 0x68?, 0x24?, 0xc000223e50?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc000223e20 sp=0xc000223e00 pc=0x43df8e
+time.Sleep(0x1406f40)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc000223e60 sp=0xc000223e20 pc=0x46d945
+torrent/labrpc.(*Network).processReq(0xc0001563c0, {{0x5f10c0, 0xc00010eff0}, {0x63b5de, 0x10}, {0x68c440, 0x5e9be0}, {0xc0002ac300, 0x31, 0x40}, ...})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:227 +0xc5 fp=0xc000223f78 sp=0xc000223e60 pc=0x5cd685
+torrent/labrpc.MakeNetwork.func1.1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x3a fp=0xc000223fe0 sp=0xc000223f78 pc=0x5cd07a
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc000223fe8 sp=0xc000223fe0 pc=0x470781
+created by torrent/labrpc.MakeNetwork.func1 in goroutine 19
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x58
+
+goroutine 2340 [sleep]:
+runtime.gopark(0x4ca104c089d?, 0x5f1240?, 0x60?, 0x24?, 0xc00021d650?)
+	/usr/lib/golang/src/runtime/proc.go:398 +0xce fp=0xc00021d620 sp=0xc00021d600 pc=0x43df8e
+time.Sleep(0x17d7840)
+	/usr/lib/golang/src/runtime/time.go:195 +0x125 fp=0xc00021d660 sp=0xc00021d620 pc=0x46d945
+torrent/labrpc.(*Network).processReq(0xc0001563c0, {{0x5f10c0, 0xc00010efc0}, {0x63b5de, 0x10}, {0x68c440, 0x5e9be0}, {0xc0002ac380, 0x31, 0x40}, ...})
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:227 +0xc5 fp=0xc00021d778 sp=0xc00021d660 pc=0x5cd685
+torrent/labrpc.MakeNetwork.func1.1()
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x3a fp=0xc00021d7e0 sp=0xc00021d778 pc=0x5cd07a
+runtime.goexit()
+	/usr/lib/golang/src/runtime/asm_amd64.s:1650 +0x1 fp=0xc00021d7e8 sp=0xc00021d7e0 pc=0x470781
+created by torrent/labrpc.MakeNetwork.func1 in goroutine 19
+	/home/mariomrowka/Documents/Spring2024/65840/Labs/src/6.5840_FinalProject/labrpc/labrpc.go:159 +0x58
+
+rax    0xfffffffffffffffc
+rbx    0x3
+rcx    0x4074ee
+rdx    0x80
+rdi    0x3
+rsi    0x7fff118b4b58
+rbp    0x7fff118b4ad0
+rsp    0x7fff118b4a88
+r8     0x0
+r9     0x0
+r10    0x1
+r11    0x246
+r12    0x7fff118b4b60
+r13    0x7e5a00
+r14    0x7e53e0
+r15    0x20
+rip    0x4074ee
+rflags 0x246
+cs     0x33
+fs     0x0
+gs     0x0
+exit status 2
+FAIL	torrent/p2p	4.420s

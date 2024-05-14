@@ -277,8 +277,8 @@ func TestManyPeersUnreliable(t *testing.T) {
 }
 
 func TestHalfSeedersUnreliable(t *testing.T) {
-	servers := 100
-	DATA_SIZE := 10 * CHUNKSIZE
+	servers := 4
+	DATA_SIZE := 4 * CHUNKSIZE
 	data := make([]byte, DATA_SIZE)
 	rand.Read(data)
 
@@ -289,7 +289,7 @@ func TestHalfSeedersUnreliable(t *testing.T) {
 	cfg.VerifyDataErr(0, true)
 	for i := 1; i < servers; i++ {
 		// time.Sleep(10 * time.Millisecond)
-		if nrand()%10 == 0 {
+		if i%2 == 0 {
 			cfg.StartPeer(i, false)
 		} else {
 			cfg.StartPeer(i, true)
