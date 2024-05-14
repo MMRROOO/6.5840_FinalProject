@@ -88,7 +88,9 @@ func (P *Peer) AddPeerFromRPCCall(peer string) {
 
 }
 
-func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) {}
+func (P *Peer) ReceiveHeartbeat(args *EmptyArgs, reply *EmptyReply) error {
+	return nil
+}
 
 func (P *Peer) ChangeChokeStatus(peer string, status bool) bool {
 	P.mu.Lock()
@@ -122,7 +124,7 @@ func (P *Peer) ChangeChokeStatus(peer string, status bool) bool {
 	return true
 }
 
-func (P *Peer) ChokeStatus(args *StatusArgs, reply *EmptyReply) {
+func (P *Peer) ChokeStatus(args *StatusArgs, reply *EmptyReply) error {
 	P.AddPeerFromRPCCall(args.Peer)
 
 	P.mu.Lock()
@@ -131,6 +133,7 @@ func (P *Peer) ChokeStatus(args *StatusArgs, reply *EmptyReply) {
 	P.knownPeerInfo[args.Peer] = pinfo
 
 	P.mu.Unlock()
+	return nil
 }
 
 func (P *Peer) ChangeInterestStatus(peer string, status bool) bool {
@@ -168,7 +171,7 @@ func (P *Peer) ChangeInterestStatus(peer string, status bool) bool {
 
 }
 
-func (P *Peer) InterestStatus(args *StatusArgs, reply *EmptyReply) {
+func (P *Peer) InterestStatus(args *StatusArgs, reply *EmptyReply) error {
 	P.AddPeerFromRPCCall(args.Peer)
 
 	P.mu.Lock()
@@ -177,6 +180,8 @@ func (P *Peer) InterestStatus(args *StatusArgs, reply *EmptyReply) {
 	P.knownPeerInfo[args.Peer] = pinfo
 
 	P.mu.Unlock()
+	return nil
+
 }
 
 func (P *Peer) SendHaveUpdate(peer string, chunk int) bool {
@@ -208,7 +213,7 @@ func (P *Peer) SendHaveUpdate(peer string, chunk int) bool {
 	return true
 }
 
-func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) {
+func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) error {
 	P.AddPeerFromRPCCall(args.Peer)
 	P.mu.Lock()
 	defer P.mu.Unlock()
@@ -227,6 +232,8 @@ func (P *Peer) HaveUpdate(args *HaveUpdateArgs, reply *EmptyReply) {
 		go P.ChangeInterestStatus(args.Peer, true)
 
 	}
+	return nil
+
 }
 
 func (P *Peer) GetMetaData() {
@@ -319,7 +326,7 @@ func (P *Peer) incrRarity(chunk int, peer string) int {
 	return rarity
 }
 
-func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
+func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) error {
 	P.AddPeerFromRPCCall(args.Me)
 	P.mu.Lock()
 	defer P.mu.Unlock()
@@ -330,9 +337,11 @@ func (P *Peer) SendChunk(args *SendChunkArgs, reply *SendChunkReply) {
 		}
 
 		reply.Valid = true
-		return
+		return nil
 	}
 	reply.Valid = false
+	return nil
+
 }
 
 func (P *Peer) CheckHash(Data []byte, chunk int) bool {
@@ -383,11 +392,11 @@ func (P *Peer) GetChunksToRequest(peer string) ([]int, []int) {
 }
 
 // RPC response that provides boolean list of file chunks owned
-func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) {
+func (P *Peer) SendChunksOwned(args *SendChunksOwnedArgs, reply *SendChunksOwnedReply) error {
 	P.AddPeerFromRPCCall(args.Me)
 
 	reply.ChunksOwned = P.ChunksOwned
-
+	return nil
 }
 
 // Will set choked for all peers to chokeFlag
@@ -637,17 +646,16 @@ func (P *Peer) findRarestChunk(peer int, toRequest []int) int {
 	return nrand() % len(toRequest)
 }
 
-func MakePeer(hashes []byte, tracker string, me int, CSize int, Seeding bool) *Peer {
+func MakePeer(Nchunks int, tracker string, CSize int, Seeding bool) *Peer {
 
 	P := &Peer{}
 	P.mu.Lock()
-	P.Hashes = hashes
 	P.Tracker = tracker
 	P.knownPeerInfo = make(map[string]PeerInfo)
-	P.NChunks = len(hashes) / 32
+	P.NChunks = Nchunks
 	P.ChunkSize = CSize
 	P.DataOwned = make([]byte, P.NChunks*P.ChunkSize)
-	P.ChunksOwned = make([]bool, (len(hashes) / 32))
+	P.ChunksOwned = make([]bool, Nchunks)
 	P.me = CreateEndpointSelf(P)
 	P.Seeding = Seeding
 	P.start = time.Now()
@@ -704,7 +712,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	if ipAddress == "" {
 		ipAddress = req.RemoteAddr
 	}
-	ipAddress = "localhost"
+	// ipAddress = "localhost"
 
 }
 
@@ -713,10 +721,10 @@ func CreateEndpointSelf(P *Peer) string {
 		i is ID of the peer (unique)
 	*/
 
-	ownEndpoint := "localhost:8090"
+	ownEndpoint := "18.29.72.162:8090"
 
 	fmt.Print(ownEndpoint, "\n")
-	go RegisterWithEndpoint(P, ownEndpoint)
+	go RegisterWithEndpoint(P, ":8090")
 
 	return ownEndpoint
 }

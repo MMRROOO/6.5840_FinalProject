@@ -41,7 +41,7 @@ func FileHashes(file []byte) []byte {
 	return hashes
 }
 
-func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
+func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) error {
 	T.mu.Lock()
 	defer T.mu.Unlock()
 	// DPrintf("sending peers\n")
@@ -56,6 +56,7 @@ func (T *Tracker) SendPeers(args *SendPeerArgs, reply *SendPeerReply) {
 		peerList = append(peerList, peer)
 	}
 	reply.Peers = GetUniqueSubslicePeers(peerList, NPEERS, args.Me)
+	return nil
 }
 
 func GetUniqueSubslicePeers(active []string, numpeers int, peer string) []string {
@@ -96,9 +97,9 @@ func CreateEndpointHost(T *Tracker) string {
 		i is ID of the peer (unique)
 	*/
 
-	ownEndpoint := "localhost:8080"
+	ownEndpoint := "18.29.72.162:8080"
 
-	go RegisterWithEndpointHost(T, ownEndpoint)
+	go RegisterWithEndpointHost(T, ":8080")
 
 	return ownEndpoint
 }
